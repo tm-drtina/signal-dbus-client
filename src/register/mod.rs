@@ -1,37 +1,32 @@
-use std::{env::args, fs::File};
+use std::path::PathBuf;
 
-use crate::error::{Error, Result};
+use rand::rngs::OsRng;
+
+use crate::account::AccountManager;
+use crate::common::ApiConfig;
+use crate::error::Result;
+use crate::store::SledStateStore;
 
 mod credentials;
 mod provision;
 mod register_device;
 
-pub use credentials::Credentials;
+pub async fn register(data_dir: PathBuf, name: &str) -> Result<()> {
+    let api_config = ApiConfig::default();
+    let csprng = &mut OsRng;
 
-pub fn register() -> Result<()> {
-    let mut args = args();
-    assert!(
-        args.len() >= 2 && args.len() <= 3,
-        "Expected 1-2 arguments: <device name>[ <output file>]. Received: {:?}",
-        args
-    );
+    let provision_message = provision::get_provision_message(&api_config).await?;
+    eprintln!("Received provision message.");
+    let creds = register_device::register_device(&api_config, provision_message, name).await?;
+    eprintln!("Device registered successfuly.");
 
-    let _exec = args.next().expect("Path to executable.");
-    let name = args.next().expect("Device name.");
-    let file = match args.next() {
-        Some(path) => Some(File::create(path).map_err(|err| Error::IoError(err))?),
-        None => None,
-    };
+    let state_store = SledStateStore::new(&data_dir)?;
+    state_store.register_new_account(creds.identity_key_pair, creds.registration_id, creds.api_user, creds.api_pass)?;
+    eprintln!("Stored credentials in state store.");
 
-    let provision_message = provision::get_provision_message()?;
-    let creds = register_device::register_device(provision_message, &name)?;
+    let mut account_manager = AccountManager::with_store(state_store, csprng, &api_config)?;
+    account_manager.initialize_pre_keys().await?;
+    eprintln!("Initialized pre keys.");
 
-    if let Some(file) = file {
-        eprintln!("Registered! Storing credentials to specified file.");
-        serde_json::to_writer(file, &creds)?;
-    } else {
-        eprintln!("Registered! Dumping credentials to stdout: (safe to pipe)");
-        println!("{}", serde_json::to_string(&creds)?);
-    }
     Ok(())
 }

@@ -1,9 +1,12 @@
-mod network;
+mod http_client;
+mod https_wss_connector;
 mod qrcode;
-mod http;
+mod tls_stream;
+pub(crate) mod serde;
+mod wss_connection;
 
-use network::connect;
-
-pub(crate) use network::connect_ws;
 pub(crate) use crate::utils::qrcode::qrcode_image;
-pub(crate) use http::send_json;
+pub(crate) use http_client::HttpClient;
+pub(crate) use https_wss_connector::HttpsWssConnector;
+pub(crate) use tls_stream::TlsStream;
+pub(crate) use wss_connection::connect_wss;
