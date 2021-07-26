@@ -16,6 +16,26 @@ impl TryFrom<&Db> for SledSessionStore {
     }
 }
 
+impl SledSessionStore {
+    pub(crate) fn load_sessions_by_prefix<'s, 'a>(
+        &'s self,
+        address: &'a ProtocolAddress,
+    ) -> SignalResult<Vec<(ProtocolAddress, SessionRecord)>> {
+        let key = ProtocolAddressBytes::from(address);
+        let mut results = Vec::new();
+        for entry_result in self.0.scan_prefix(key.prefix()) {
+            match entry_result {
+                Ok((key, value)) => results.push((
+                    ProtocolAddressBytes::from(&*key).into(),
+                    SessionRecord::deserialize(&value)?,
+                )),
+                Err(err) => return Err(sled_to_signal_error("load_sessions_by _prefix", err)),
+            }
+        }
+        Ok(results)
+    }
+}
+
 #[async_trait(?Send)]
 impl SessionStore for SledSessionStore {
     async fn load_session<'s, 'a>(

@@ -60,7 +60,7 @@ impl<'a> ApiPath<'a> {
             }
             Self::PreKeys => PathAndQuery::from_static("/v2/keys/"),
             Self::SendMessage { recipient } => {
-                PathAndQuery::from_str(&format!("v1/messages/{}", recipient)).unwrap()
+                PathAndQuery::from_str(&format!("v1/messages/{}", recipient.replace("+", "%2B"))).unwrap()
             }
             Self::GetSessionKey {
                 recipient,

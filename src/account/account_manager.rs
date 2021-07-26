@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use hyper::Method;
 use libsignal_protocol::{
     message_encrypt, process_prekey_bundle, DeviceId, IdentityKeyStore, PreKeyBundle, PreKeyStore,
-    ProtocolAddress, SignedPreKeyStore,
+    ProtocolAddress, SessionStore, SignalProtocolError, SignedPreKeyStore,
 };
 use rand::{CryptoRng, Rng};
 
@@ -102,6 +102,10 @@ impl<'r, R: Rng + CryptoRng> AccountManager<'r, R> {
                 recipient.to_string(),
                 bundle.device_id().expect("Impl doesn't return Err"),
             );
+            if remote_address.to_string() == self.state.api_username()? {
+                eprintln!("Skipping local address {}", remote_address);
+                continue;
+            }
             process_prekey_bundle(
                 &remote_address,
                 &mut self.state.session_store,
@@ -117,6 +121,47 @@ impl<'r, R: Rng + CryptoRng> AccountManager<'r, R> {
         Ok(addrs)
     }
 
+    pub async fn ensure_sessions(
+        &mut self,
+        recipient: &str,
+        device_ids: &[DeviceId],
+    ) -> Result<Vec<(ProtocolAddress, u32)>> {
+        if device_ids.is_empty() {
+            let sessions = self
+                .state
+                .session_store
+                .load_sessions_by_prefix(&ProtocolAddress::new(recipient.to_string(), 0))?;
+            if sessions.is_empty() {
+                eprintln!("No sessions found, fetchnig new ones.");
+                self.create_session(recipient, None).await
+            } else {
+                eprintln!("Found {} sessions.", sessions.len());
+                sessions
+                    .into_iter()
+                    .map(|(addr, record)| Ok((addr, record.remote_registration_id()?)))
+                    .collect()
+            }
+        } else {
+            let mut results = Vec::new();
+            for device_id in device_ids {
+                let addr = ProtocolAddress::new(recipient.to_string(), *device_id);
+                let session = self.state.load_session(&addr, None).await?;
+                if let Some(session) = session {
+                    results.push((addr, session.remote_registration_id()?))
+                } else {
+                    results.push(
+                        self.create_session(recipient, Some(*device_id))
+                            .await?
+                            .into_iter()
+                            .find(|entry| addr == entry.0)
+                            .ok_or(SignalProtocolError::SessionNotFound(addr.to_string()))?,
+                    );
+                }
+            }
+            Ok(results)
+        }
+    }
+
     async fn register_prekeys(&self, pre_key_state: PreKeyState) -> Result<()> {
         self.http_client
             .send_json(Method::PUT, ApiPath::PreKeys, &pre_key_state)
@@ -125,15 +170,10 @@ impl<'r, R: Rng + CryptoRng> AccountManager<'r, R> {
         Ok(())
     }
 
-    pub async fn send_message<S1: Into<String>, S2: Into<String>>(
-        &mut self,
-        recipient: S1,
-        message: S2,
-    ) -> Result<()> {
-        let message: String = message.into();
-        let recipient: String = recipient.into();
+    pub async fn send_message(&mut self, recipient: &str, message: &str) -> Result<()> {
+        let addrs = self.ensure_sessions(&recipient, &[]).await?;
 
-        let addrs = self.create_session(&recipient, None).await?;
+        println!("{:?}", addrs);
 
         let mut send_metadata = Vec::<SendMetadata>::with_capacity(addrs.len());
         for (addr, registration_id) in addrs.into_iter() {
@@ -148,23 +188,18 @@ impl<'r, R: Rng + CryptoRng> AccountManager<'r, R> {
 
             send_metadata.push(SendMetadata::new(
                 ciphertext_message,
+                recipient.to_string(),
                 addr.device_id(),
                 registration_id,
             ));
         }
 
-        let body = MessagesWrapper::new(recipient.clone(), send_metadata);
+        let body = MessagesWrapper::new(send_metadata);
 
         // FIXME: this returns 400
         let response = self
             .http_client
-            .send_json(
-                Method::PUT,
-                ApiPath::SendMessage {
-                    recipient: &recipient,
-                },
-                &body,
-            )
+            .send_json(Method::PUT, ApiPath::SendMessage { recipient }, &body)
             .await?
             .text()
             .await?;
