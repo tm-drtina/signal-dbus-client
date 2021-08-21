@@ -94,6 +94,8 @@ impl<'r, R: Rng + CryptoRng> AccountManager<'r, R> {
             .json()
             .await?;
 
+        eprintln!("{:?}", response);
+
         let bundles: Vec<PreKeyBundle> = response.try_into()?;
         let mut addrs = Vec::with_capacity(bundles.len());
 
@@ -133,7 +135,18 @@ impl<'r, R: Rng + CryptoRng> AccountManager<'r, R> {
         let message: String = message.into();
         let recipient: String = recipient.into();
 
-        let addrs = self.create_session(&recipient, None).await?;
+        let mut addrs = self
+            .state
+            .session_store
+            .load_sessions_by_prefix(&recipient)
+            .await?
+            .into_iter()
+            .map(|(addr, session)| Ok((addr, session.remote_registration_id()?)))
+            .collect::<Result<Vec<(ProtocolAddress, u32)>>>()?;
+
+        if addrs.is_empty() {
+            addrs = self.create_session(&recipient, None).await?;
+        }
 
         let mut send_metadata = Vec::<SendMetadata>::with_capacity(addrs.len());
         for (addr, registration_id) in addrs.into_iter() {
@@ -153,9 +166,8 @@ impl<'r, R: Rng + CryptoRng> AccountManager<'r, R> {
             ));
         }
 
-        let body = MessagesWrapper::new(recipient.clone(), send_metadata);
+        let body = MessagesWrapper::new(send_metadata);
 
-        // FIXME: this returns 400
         let response = self
             .http_client
             .send_json(
@@ -170,6 +182,8 @@ impl<'r, R: Rng + CryptoRng> AccountManager<'r, R> {
             .await?;
 
         eprintln!("{}", response);
+
+        // TODO: send sync message
 
         Ok(())
     }

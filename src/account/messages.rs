@@ -34,16 +34,14 @@ impl SendMetadata {
 
 #[derive(Serialize)]
 pub(crate) struct MessagesWrapper {
-    destination: String,
     messages: Vec<SendMetadata>,
     timestamp: u64,
     online: bool,
 }
 
 impl MessagesWrapper {
-    pub(crate) fn new(destination: String, messages: Vec<SendMetadata>) -> Self {
+    pub(crate) fn new(messages: Vec<SendMetadata>) -> Self {
         Self {
-            destination,
             messages,
             timestamp: SystemTime::now()
                 .duration_since(SystemTime::UNIX_EPOCH)

@@ -79,6 +79,7 @@ impl HttpClient {
         }
 
         let req = builder.body(body)?;
+        eprintln!("{:?}", req);
 
         let resp = self.client.request(req).await?;
         if resp.status().is_success() {

@@ -2,7 +2,8 @@
 D-Bus based client for Signal Messenger
 
 ## Issues
-- Send message returns HTTP 400
+- We're not sending sync messages after sending data message
+- Resolve "Note to self" type of messages
 
 ## Development
 ### Update signal certificate

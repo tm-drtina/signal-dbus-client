@@ -89,7 +89,7 @@ pub(super) async fn register_device(
     );
 
     Ok(Credentials {
-        api_user: address.to_string(),
+        address,
         api_pass,
         identity_key_pair: *message.identity_key_pair(),
         registration_id,

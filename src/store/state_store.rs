@@ -43,19 +43,9 @@ impl SledStateStore {
         self.identity_store.get_api_pass()
     }
 
-    pub(crate) fn register_new_account(&self, identity_key_pair: IdentityKeyPair, registration_id: u32, api_user: String, api_pass: String) -> Result<()> {
-        self.identity_store.register_new_account(identity_key_pair, registration_id, api_user, api_pass)
+    pub(crate) fn register_new_account(&self, identity_key_pair: IdentityKeyPair, registration_id: u32, address: ProtocolAddress, api_pass: String) -> Result<()> {
+        self.identity_store.register_new_account(identity_key_pair, registration_id, address, api_pass)
     }
-
-
-    /*pub(crate) fn from_credentials<P: AsRef<Path>>(
-        data_dir: P,
-        credentials: &Credentials,
-    ) -> Result<Self> {
-        let new = Self::new(data_dir)?;
-
-        Ok(new)
-    }*/
 }
 
 #[async_trait(?Send)]

@@ -14,7 +14,7 @@ use super::utils::{sled_to_signal_error, ProtocolAddressBytes};
 
 const IDENTITY_KEY_PAIR_KEY: &[u8] = b"identity_key_pair";
 const REGISTRATION_ID_KEY: &[u8] = b"registration_id";
-const API_USER_KEY: &[u8] = b"api_user";
+const ADDRESS_KEY: &[u8] = b"address";
 const API_PASS_KEY: &[u8] = b"api_pass";
 
 pub(crate) struct SledIdentityStore {
@@ -33,22 +33,27 @@ impl TryFrom<&Db> for SledIdentityStore {
 }
 
 impl SledIdentityStore {
-    pub(crate) fn get_api_user(&self) -> Result<String> {
-        match self.credentials.get(API_USER_KEY)? {
-            Some(value) => Ok(std::str::from_utf8(&value).expect("Only valid strings are stored.").to_string()),
+    pub(crate) fn get_address(&self) -> Result<ProtocolAddress> {
+        match self.credentials.get(ADDRESS_KEY)? {
+            Some(value) => Ok(ProtocolAddressBytes::new(value.to_vec().into_boxed_slice()).into()),
             None => Err(Error::Uninitialized),
         }
     }
+
+    pub(crate) fn get_api_user(&self) -> Result<String> {
+        Ok(self.get_address()?.to_string())
+    }
+
     pub(crate) fn get_api_pass(&self) -> Result<String> {
         match self.credentials.get(API_PASS_KEY)? {
-            Some(value) => Ok(std::str::from_utf8(&value).expect("Only valid strings are stored.").to_string()),
+            Some(value) => Ok(String::from_utf8_lossy(&value).to_string()),
             None => Err(Error::Uninitialized),
         }
     }
-    pub(crate) fn register_new_account(&self, identity_key_pair: IdentityKeyPair, registration_id: u32, api_user: String, api_pass: String) -> Result<()> {
+    pub(crate) fn register_new_account(&self, identity_key_pair: IdentityKeyPair, registration_id: u32, address: ProtocolAddress, api_pass: String) -> Result<()> {
         self.credentials.insert(IDENTITY_KEY_PAIR_KEY, identity_key_pair.serialize())?;
         self.credentials.insert(REGISTRATION_ID_KEY, &registration_id.to_le_bytes())?;
-        self.credentials.insert(API_USER_KEY, api_user.as_bytes())?;
+        self.credentials.insert(ADDRESS_KEY, ProtocolAddressBytes::from(&address).as_ref())?;
         self.credentials.insert(API_PASS_KEY, api_pass.as_bytes())?;
         Ok(())
     }
