@@ -87,7 +87,8 @@ pub(super) async fn get_provision_message(api_config: &ApiConfig) -> Result<Prov
     let result = process_stream(sink, stream).await;
 
     jh.abort();
-    jh.await.expect_err("We are cancelling the job, so error is expected");
+    jh.await
+        .expect_err("We are cancelling the job, so error is expected");
 
     result
 }

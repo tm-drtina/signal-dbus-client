@@ -43,8 +43,19 @@ impl SledStateStore {
         self.identity_store.get_api_pass()
     }
 
-    pub(crate) fn register_new_account(&self, identity_key_pair: IdentityKeyPair, registration_id: u32, address: ProtocolAddress, api_pass: String) -> Result<()> {
-        self.identity_store.register_new_account(identity_key_pair, registration_id, address, api_pass)
+    pub(crate) fn register_new_account(
+        &self,
+        identity_key_pair: IdentityKeyPair,
+        registration_id: u32,
+        address: ProtocolAddress,
+        api_pass: String,
+    ) -> Result<()> {
+        self.identity_store.register_new_account(
+            identity_key_pair,
+            registration_id,
+            address,
+            api_pass,
+        )
     }
 }
 
@@ -80,7 +91,9 @@ impl PreKeyStore for SledStateStore {
         record: &PreKeyRecord,
         ctx: Context,
     ) -> SignalResult<()> {
-        self.pre_key_store.save_pre_key(prekey_id, record, ctx).await
+        self.pre_key_store
+            .save_pre_key(prekey_id, record, ctx)
+            .await
     }
 
     async fn remove_pre_key(&mut self, prekey_id: PreKeyId, ctx: Context) -> SignalResult<()> {
@@ -148,7 +161,9 @@ impl IdentityKeyStore for SledStateStore {
         identity: &IdentityKey,
         ctx: Context,
     ) -> SignalResult<bool> {
-        self.identity_store.save_identity(address, identity, ctx).await
+        self.identity_store
+            .save_identity(address, identity, ctx)
+            .await
     }
 }
 

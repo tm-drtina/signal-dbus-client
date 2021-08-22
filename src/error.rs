@@ -23,7 +23,9 @@ impl From<signal_provisioning_api::Error> for Error {
     fn from(err: signal_provisioning_api::Error) -> Self {
         match err {
             signal_provisioning_api::Error::SignalCryptoError(err) => Self::SignalCryptoError(err),
-            signal_provisioning_api::Error::SignalProtocolError(err) => Self::SignalProtocolError(err),
+            signal_provisioning_api::Error::SignalProtocolError(err) => {
+                Self::SignalProtocolError(err)
+            }
         }
     }
 }

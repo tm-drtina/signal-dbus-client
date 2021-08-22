@@ -17,6 +17,7 @@ const REGISTRATION_ID_KEY: &[u8] = b"registration_id";
 const ADDRESS_KEY: &[u8] = b"address";
 const API_PASS_KEY: &[u8] = b"api_pass";
 
+#[derive(Clone)]
 pub(crate) struct SledIdentityStore {
     known_keys: Tree,
     credentials: Tree,
@@ -50,10 +51,19 @@ impl SledIdentityStore {
             None => Err(Error::Uninitialized),
         }
     }
-    pub(crate) fn register_new_account(&self, identity_key_pair: IdentityKeyPair, registration_id: u32, address: ProtocolAddress, api_pass: String) -> Result<()> {
-        self.credentials.insert(IDENTITY_KEY_PAIR_KEY, identity_key_pair.serialize())?;
-        self.credentials.insert(REGISTRATION_ID_KEY, &registration_id.to_le_bytes())?;
-        self.credentials.insert(ADDRESS_KEY, ProtocolAddressBytes::from(&address).as_ref())?;
+    pub(crate) fn register_new_account(
+        &self,
+        identity_key_pair: IdentityKeyPair,
+        registration_id: u32,
+        address: ProtocolAddress,
+        api_pass: String,
+    ) -> Result<()> {
+        self.credentials
+            .insert(IDENTITY_KEY_PAIR_KEY, identity_key_pair.serialize())?;
+        self.credentials
+            .insert(REGISTRATION_ID_KEY, &registration_id.to_le_bytes())?;
+        self.credentials
+            .insert(ADDRESS_KEY, ProtocolAddressBytes::from(&address).as_ref())?;
         self.credentials.insert(API_PASS_KEY, api_pass.as_bytes())?;
         Ok(())
     }
@@ -119,27 +129,16 @@ impl IdentityKeyStore for SledIdentityStore {
         _ctx: Context,
     ) -> SignalResult<bool> {
         let key = ProtocolAddressBytes::from(address);
-        let current = self
-            .known_keys
-            .get(key.clone())
-            .map_err(|err| sled_to_signal_error("save_identity", err))?;
         let new = identity.serialize();
-        match current {
-            None => {
-                self.known_keys
-                    .insert(key, new)
-                    .map_err(|err| sled_to_signal_error("save_identity", err))?;
-                Ok(false) // new key
-            }
-            Some(bytes) if bytes == new => {
-                Ok(false) // same key
-            }
-            Some(_) => {
-                self.known_keys
-                    .insert(key, new)
-                    .map_err(|err| sled_to_signal_error("save_identity", err))?;
-                Ok(true) // overwrite
-            }
-        }
+        let old = self
+            .known_keys
+            .insert(key, new.as_ref())
+            .map_err(|err| sled_to_signal_error("save_identity", err))?;
+
+        Ok(match old {
+            None => false,
+            Some(bytes) if bytes == new => false,
+            Some(_) => true,
+        })
     }
 }

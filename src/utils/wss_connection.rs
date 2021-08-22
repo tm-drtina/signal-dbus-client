@@ -1,5 +1,5 @@
-use hyper::Uri;
 use hyper::service::Service;
+use hyper::Uri;
 use tokio_tungstenite::WebSocketStream;
 
 use crate::common::{ApiConfig, ApiPath};

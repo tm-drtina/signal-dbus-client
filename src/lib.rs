@@ -7,5 +7,5 @@ mod send;
 mod store;
 mod utils;
 
-pub use send::send_message;
 pub use register::register;
+pub use send::send_message;

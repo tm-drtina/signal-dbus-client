@@ -21,7 +21,12 @@ pub async fn register(data_dir: PathBuf, name: &str) -> Result<()> {
     eprintln!("Device registered successfuly.");
 
     let state_store = SledStateStore::new(&data_dir)?;
-    state_store.register_new_account(creds.identity_key_pair, creds.registration_id, creds.address, creds.api_pass)?;
+    state_store.register_new_account(
+        creds.identity_key_pair,
+        creds.registration_id,
+        creds.address,
+        creds.api_pass,
+    )?;
     eprintln!("Stored credentials in state store.");
 
     let mut account_manager = AccountManager::with_store(state_store, csprng, &api_config)?;

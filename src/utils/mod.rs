@@ -1,8 +1,8 @@
 mod http_client;
 mod https_wss_connector;
 mod qrcode;
-mod tls_stream;
 pub(crate) mod serde;
+mod tls_stream;
 mod wss_connection;
 
 pub(crate) use crate::utils::qrcode::qrcode_image;

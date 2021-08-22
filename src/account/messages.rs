@@ -1,7 +1,7 @@
 use std::time::SystemTime;
 
 use libsignal_protocol::{CiphertextMessage, DeviceId};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::utils::serde::serialize_ciphertext_message;
 
@@ -50,4 +50,18 @@ impl MessagesWrapper {
             online: false,
         }
     }
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct MessageResponse409 {
+    #[serde(rename = "missingDevices")]
+    pub(crate) missing_devices: Vec<DeviceId>,
+    #[serde(rename = "extraDevices")]
+    pub(crate) extra_devices: Vec<DeviceId>,
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct MessageResponse200 {
+    #[serde(rename = "needsSync")]
+    pub(crate) needs_sync: bool,
 }

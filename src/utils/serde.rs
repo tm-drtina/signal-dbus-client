@@ -57,7 +57,10 @@ where
     serializer.serialize_str(&encoded)
 }
 
-pub(crate) fn serialize_ciphertext_message<S>(value: &CiphertextMessage, serializer: S) -> Result<S::Ok, S::Error>
+pub(crate) fn serialize_ciphertext_message<S>(
+    value: &CiphertextMessage,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {

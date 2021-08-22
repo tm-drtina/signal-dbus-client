@@ -4,26 +4,28 @@ use std::path::PathBuf;
 use hyper::Method;
 use libsignal_protocol::{
     message_encrypt, process_prekey_bundle, DeviceId, IdentityKeyStore, PreKeyBundle, PreKeyStore,
-    ProtocolAddress, SignedPreKeyStore,
+    ProtocolAddress, SessionStore, SignedPreKeyStore,
 };
 use rand::{CryptoRng, Rng};
 
-use crate::account::messages::{MessagesWrapper, SendMetadata};
+use crate::account::messages::{
+    MessageResponse200, MessageResponse409, MessagesWrapper, SendMetadata,
+};
 use crate::account::pre_keys::DeviceKeys;
 use crate::common::{ApiConfig, ApiPath};
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::store::SledStateStore;
 use crate::utils::HttpClient;
 
 use super::pre_keys::{generate_pre_keys, generate_signed_pre_key, PreKeyState};
 
-pub(crate) struct AccountManager<'r, R: Rng + CryptoRng> {
+pub(crate) struct AccountManager<'r, R: Rng + CryptoRng + Clone> {
     http_client: HttpClient,
     state: SledStateStore,
     csprng: &'r mut R,
 }
 
-impl<'r, R: Rng + CryptoRng> AccountManager<'r, R> {
+impl<'r, R: Rng + CryptoRng + Clone> AccountManager<'r, R> {
     pub(crate) fn new(
         data_dir: PathBuf,
         csprng: &'r mut R,
@@ -74,8 +76,8 @@ impl<'r, R: Rng + CryptoRng> AccountManager<'r, R> {
         Ok(())
     }
 
-    pub async fn create_session(
-        &mut self,
+    pub async fn create_sessions(
+        &self,
         recipient: &str,
         device_id: Option<DeviceId>,
     ) -> Result<Vec<(ProtocolAddress, u32)>> {
@@ -104,12 +106,17 @@ impl<'r, R: Rng + CryptoRng> AccountManager<'r, R> {
                 recipient.to_string(),
                 bundle.device_id().expect("Impl doesn't return Err"),
             );
+
+            let mut session_store = self.state.session_store.clone();
+            let mut identity_store = self.state.identity_store.clone();
+            let mut csprng = self.csprng.clone();
+
             process_prekey_bundle(
                 &remote_address,
-                &mut self.state.session_store,
-                &mut self.state.identity_store,
+                &mut session_store,
+                &mut identity_store,
                 &bundle,
-                self.csprng,
+                &mut csprng,
                 None,
             )
             .await?;
@@ -127,64 +134,105 @@ impl<'r, R: Rng + CryptoRng> AccountManager<'r, R> {
         Ok(())
     }
 
-    pub async fn send_message<S1: Into<String>, S2: Into<String>>(
-        &mut self,
-        recipient: S1,
-        message: S2,
-    ) -> Result<()> {
-        let message: String = message.into();
-        let recipient: String = recipient.into();
-
-        let mut addrs = self
-            .state
+    async fn load_sessions(&self, recipient: &str) -> Result<Vec<(ProtocolAddress, u32)>> {
+        self.state
             .session_store
             .load_sessions_by_prefix(&recipient)
             .await?
             .into_iter()
+            // TODO: Is this filter correct?
+            .filter(|(_, session)| session.has_current_session_state())
             .map(|(addr, session)| Ok((addr, session.remote_registration_id()?)))
-            .collect::<Result<Vec<(ProtocolAddress, u32)>>>()?;
+            .collect()
+    }
 
+    async fn load_or_create_sessions(
+        &self,
+        recipient: &str,
+    ) -> Result<Vec<(ProtocolAddress, u32)>> {
+        let addrs = self.load_sessions(recipient).await?;
         if addrs.is_empty() {
-            addrs = self.create_session(&recipient, None).await?;
+            self.create_sessions(recipient, None).await
+        } else {
+            Ok(addrs)
         }
+    }
 
-        let mut send_metadata = Vec::<SendMetadata>::with_capacity(addrs.len());
-        for (addr, registration_id) in addrs.into_iter() {
-            let ciphertext_message = message_encrypt(
-                message.as_bytes(),
-                &addr,
-                &mut self.state.session_store,
-                &mut self.state.identity_store,
-                None,
-            )
-            .await?;
+    pub async fn send_message(&self, recipient: &str, message: &str) -> Result<()> {
+        loop {
+            let addrs = self.load_or_create_sessions(recipient).await?;
 
-            send_metadata.push(SendMetadata::new(
-                ciphertext_message,
-                addr.device_id(),
-                registration_id,
-            ));
+            let mut send_metadata = Vec::with_capacity(addrs.len());
+            for (addr, registration_id) in addrs.into_iter() {
+                // Clone is cheap, since our store is just a wrapped Arc.
+                // This way we don't require &mut self and &self is enough.
+                let mut session_store = self.state.session_store.clone();
+                let mut identity_store = self.state.identity_store.clone();
+
+                let ciphertext_message = message_encrypt(
+                    message.as_bytes(),
+                    &addr,
+                    &mut session_store,
+                    &mut identity_store,
+                    None,
+                )
+                .await?;
+
+                send_metadata.push(SendMetadata::new(
+                    ciphertext_message,
+                    addr.device_id(),
+                    registration_id,
+                ));
+            }
+
+            let body = MessagesWrapper::new(send_metadata);
+
+            let response_result = self
+                .http_client
+                .send_json(Method::PUT, ApiPath::SendMessage { recipient }, &body)
+                .await;
+
+            let response: MessageResponse200 = match response_result {
+                Ok(response) => response.json().await?,
+                Err(Error::HttpError(status_code, value)) if status_code == 409 => {
+                    let MessageResponse409 {
+                        missing_devices,
+                        extra_devices,
+                    } = serde_json::from_str(&value)?;
+
+                    for device_id in missing_devices {
+                        self.create_sessions(recipient, Some(device_id)).await?;
+                    }
+                    for device_id in extra_devices {
+                        let addr = ProtocolAddress::new(recipient.to_string(), device_id);
+                        let mut session = self
+                            .state
+                            .load_session(&addr, None)
+                            .await?
+                            .expect("Extra session should be still present.");
+                        // TODO: is archiving enough? Shouldn't we delete it?
+                        session.archive_current_state()?;
+
+                        // Clone is cheap, since our store is just a wrapped Arc.
+                        // This way we don't require &mut self and &self is enough.
+                        self.state
+                            .session_store
+                            .clone()
+                            .store_session(&addr, &session, None)
+                            .await?;
+                    }
+                    continue;
+                }
+                Err(err) => {
+                    return Err(err);
+                }
+            };
+
+            eprintln!("{:?}", response);
+
+            // TODO: send sync message
+
+            return Ok(());
         }
-
-        let body = MessagesWrapper::new(send_metadata);
-
-        let response = self
-            .http_client
-            .send_json(
-                Method::PUT,
-                ApiPath::SendMessage {
-                    recipient: &recipient,
-                },
-                &body,
-            )
-            .await?
-            .text()
-            .await?;
-
-        eprintln!("{}", response);
-
-        // TODO: send sync message
-
-        Ok(())
     }
 }
