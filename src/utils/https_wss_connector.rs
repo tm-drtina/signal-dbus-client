@@ -1,3 +1,4 @@
+use std::convert::TryFrom;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
@@ -7,8 +8,7 @@ use hyper::client::connect::dns::GaiResolver;
 use hyper::client::HttpConnector;
 use hyper::service::Service;
 use hyper::Uri;
-use tokio_rustls::rustls::ClientConfig;
-use tokio_rustls::webpki::DNSNameRef;
+use tokio_rustls::rustls::{ClientConfig, ServerName};
 use tokio_rustls::TlsConnector;
 
 use crate::common::ApiConfig;
@@ -73,10 +73,9 @@ impl Service<Uri> for HttpsWssConnector {
                 .await
                 .map_err(|_| connection_error("unknown"))?;
             let connector = TlsConnector::from(cfg);
-            let dnsname = DNSNameRef::try_from_ascii_str(&hostname)
-                .map_err(|_| connection_error("invalid dnsname"))?;
+            let server_name = ServerName::try_from(hostname.as_str()).expect("invalid DNS name");
             let tls = connector
-                .connect(dnsname, tcp)
+                .connect(server_name, tcp)
                 .await
                 .map_err(|e| connection_error(e.to_string()))?;
             Ok(tls.into())

@@ -137,7 +137,7 @@ impl<'r, R: Rng + CryptoRng + Clone> AccountManager<'r, R> {
     async fn load_sessions(&self, recipient: &str) -> Result<Vec<(ProtocolAddress, u32)>> {
         self.state
             .session_store
-            .load_sessions_by_prefix(&recipient)
+            .load_sessions_by_prefix(recipient)
             .await?
             .into_iter()
             // TODO: Is this filter correct?
