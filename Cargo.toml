@@ -7,8 +7,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-libsignal-protocol = { git = "https://github.com/signalapp/libsignal-client.git", tag = "v0.9.8" }
-signal-provisioning-api = { git = "https://github.com/tm-drtina/signal-provisioning-api.git", branch = "tomas/bump-to-upstream-0.9.8" }
+libsignal-protocol = { git = "https://github.com/signalapp/libsignal-client.git", tag = "v0.11.0" }
+signal-provisioning-api = { git = "https://github.com/tm-drtina/signal-provisioning-api.git", tag = "v0.1.0" }
 
 rand = "0.7"
 

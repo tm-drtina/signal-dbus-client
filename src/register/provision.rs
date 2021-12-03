@@ -27,7 +27,7 @@ where
                 }
                 TungMessage::Pong(_) | TungMessage::Text(_) | TungMessage::Close(_) => {}
                 TungMessage::Binary(data) => {
-                    if let Some(request_id) = socket.process_message(data).unwrap() {
+                    if let Some(request_id) = socket.process_message(&data).unwrap() {
                         let ack = ProvisioningSocket::acknowledge(request_id);
                         let ack = ProvisioningSocket::serialize(ack);
                         sink.lock()
