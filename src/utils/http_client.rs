@@ -41,7 +41,7 @@ impl HttpClient {
         );
         default_headers.insert(
             HOST,
-            HeaderValue::from_str(&api_config.authority.host())
+            HeaderValue::from_str(api_config.authority.host())
                 .expect("Host from Authority is valid."),
         );
 
