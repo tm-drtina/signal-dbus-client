@@ -32,10 +32,13 @@ struct DeviceRegistrationRequest {
 
 impl DeviceRegistrationRequest {
     pub fn new(name: String, registration_id: u32) -> Self {
+        // TODO: we send capabilities that we don't have!
         let mut capabilities = HashMap::new();
         capabilities.insert("gv2-3".to_string(), true);
         capabilities.insert("gv1-migration".to_string(), true);
         capabilities.insert("senderKey".to_string(), false);
+        capabilities.insert("changeNumber".to_string(), true);
+        capabilities.insert("announcementGroup".to_string(), true);
         Self {
             capabilities,
             fetches_messages: true,
