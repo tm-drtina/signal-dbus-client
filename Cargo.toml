@@ -7,10 +7,10 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-libsignal-protocol = { git = "https://github.com/signalapp/libsignal-client.git", tag = "v0.11.0" }
-signal-provisioning-api = { git = "https://github.com/tm-drtina/signal-provisioning-api.git", tag = "v0.1.0" }
+libsignal-protocol = { git = "https://github.com/signalapp/libsignal.git", tag = "v0.16.0" }
+signal-provisioning-api = { git = "https://github.com/tm-drtina/signal-provisioning-api.git", rev = "69fb70bf2f716f1e9cc63b86b2cd78b91cba9027" } #tag = "v0.1.0" }
 
-rand = "0.7"
+rand = "0.7.3"
 
 qrcode = "0.12"
 serde = "1.0"
@@ -19,15 +19,15 @@ base64 = "0.13"
 
 futures-util = "0.3"
 hyper = { version = "0.14", features = ["client", "http1", "tcp"] }
-rustls-pemfile = "0.2.1"
+rustls-pemfile = "1"
 thiserror = "1.0.30"
 tokio = { version = "1", features = ["macros", "rt", "time", "sync"] }
 tokio-rustls = "0.23.1"
-tokio-tungstenite = "0.15"
-tungstenite = "0.14"
+tokio-tungstenite = "0.17.1"
+tungstenite = "0.17.2"
 
 clap = "2"
-dirs = "3"
+dirs = "4"
 async-trait = "0.1"
 
-sled = "^0.34.6"
+sled = "0.34.6"
