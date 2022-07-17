@@ -1,91 +1,60 @@
 use std::fs::DirBuilder;
 use std::path::{Path, PathBuf};
 
-use clap::{App, AppSettings, Arg, SubCommand};
+use clap::{Parser, Subcommand};
 use signal_dbus_client::error::Result;
 use signal_dbus_client::{register, send_message};
 
+#[derive(Parser)]
+#[clap(author, version, about, long_about = None)]
+#[clap(
+    propagate_version = true,
+    subcommand_required = true,
+    arg_required_else_help = true
+)]
+struct Cli {
+    #[clap(subcommand)]
+    command: Commands,
+
+    #[clap(
+        long,
+        short,
+        value_name = "DIRECTORY",
+        help = "Sets a custom data directory"
+    )]
+    data_dir: Option<PathBuf>,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    #[clap(about = "Register new sub-device")]
+    Register {
+        #[clap(help = "Sets the name of newly registered sub-device")]
+        name: String,
+    },
+    #[clap(about = "Sends message to specified recipient")]
+    Send {
+        #[clap(help = "Recipient of the message. Either E164 telephone format or UUID")]
+        recipient: String,
+        message: String,
+    },
+}
+
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
-    let matches = App::new("SignalApp client")
-        .version("0.1.0")
-        .author("Tomas Drtina <tm.drtina@gmail.com>")
-        .setting(AppSettings::SubcommandRequiredElseHelp)
-        .arg(
-            Arg::with_name("data-dir")
-                .short("d")
-                .long("data-dir")
-                .value_name("DIRECTORY")
-                .help("Sets a custom data directory")
-                .takes_value(true),
-        )
-        .subcommand(
-            SubCommand::with_name("register")
-                .about("Register new sub-device")
-                .arg(
-                    Arg::with_name("name")
-                        .short("n")
-                        .long("name")
-                        .index(1)
-                        .required(true)
-                        .help("Sets the name of newly registered sub-device"),
-                ),
-        )
-        .subcommand(
-            SubCommand::with_name("send")
-                .about("Sends message to specified recipient")
-                .arg(
-                    Arg::with_name("recipient")
-                        .short("r")
-                        .long("recipient")
-                        .index(1)
-                        .required(true)
-                        .help("Recipient of the message. Either E164 telephone format or UUID"),
-                )
-                .arg(
-                    Arg::with_name("message")
-                        .short("m")
-                        .long("message")
-                        .index(2)
-                        .required(true)
-                        .help("Message"),
-                ),
-        )
-        .get_matches();
+    let cli = Cli::parse();
 
-    let data_dir = if let Some(path) = matches.value_of("data-dir") {
-        let path = PathBuf::from(path);
-
+    let data_dir = if let Some(path) = cli.data_dir {
         test_writeable_directory(&path)?;
         path
     } else {
         get_default_data_dir()?
     };
 
-    // TODO: improve when clap 3 is out
-    match matches.subcommand {
-        Some(subcommand) if subcommand.name == "register" => {
-            let name = subcommand
-                .matches
-                .value_of("name")
-                .expect("Name is required arg.");
-            register(data_dir, name).await?;
-        }
-        Some(subcommand) if subcommand.name == "send" => {
-            let recipient = subcommand
-                .matches
-                .value_of("recipient")
-                .expect("Recipient is required arg.");
-            let message = subcommand
-                .matches
-                .value_of("message")
-                .expect("Message is required arg.");
-            send_message(data_dir, recipient, message).await?;
-        }
-        _ => unreachable!(),
+    match cli.command {
+        Commands::Register { name } => register(data_dir, &name).await,
+        Commands::Send { recipient, message } => send_message(data_dir, &recipient, &message).await,
     }
-
-    Ok(())
 }
 
 fn test_writeable_directory(path: &Path) -> Result<()> {
