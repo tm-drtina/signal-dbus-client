@@ -2,11 +2,12 @@ use std::convert::TryFrom;
 
 use async_trait::async_trait;
 use libsignal_protocol::error::Result as SignalResult;
-use libsignal_protocol::{Context, SignalProtocolError, SignedPreKeyRecord, SignedPreKeyStore};
+use libsignal_protocol::{
+    Context, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
+};
 use sled::{Db, Tree};
 
 use super::utils::sled_to_signal_error;
-use super::SignedPreKeyId;
 
 pub(crate) struct SledSignedPreKeyStore(Tree);
 
@@ -24,7 +25,7 @@ impl SignedPreKeyStore for SledSignedPreKeyStore {
         signed_prekey_id: SignedPreKeyId,
         _ctx: Context,
     ) -> SignalResult<SignedPreKeyRecord> {
-        let key = &signed_prekey_id.to_le_bytes();
+        let key = u32::from(signed_prekey_id).to_le_bytes();
         match self.0.get(key) {
             Ok(Some(bytes)) => SignedPreKeyRecord::deserialize(&bytes),
             Ok(None) => Err(SignalProtocolError::InvalidPreKeyId),
@@ -39,7 +40,7 @@ impl SignedPreKeyStore for SledSignedPreKeyStore {
         _ctx: Context,
     ) -> SignalResult<()> {
         // This overwrites old values, which matches Java behavior, but is it correct?
-        let key = &signed_prekey_id.to_le_bytes();
+        let key = u32::from(signed_prekey_id).to_le_bytes();
         let value = record.serialize()?;
         self.0
             .insert(key, value)

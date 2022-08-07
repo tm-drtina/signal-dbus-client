@@ -36,9 +36,11 @@ impl DeviceRegistrationRequest {
         let mut capabilities = HashMap::new();
         capabilities.insert("gv2-3".to_string(), true);
         capabilities.insert("gv1-migration".to_string(), true);
-        capabilities.insert("senderKey".to_string(), false);
+        capabilities.insert("senderKey".to_string(), true);
         capabilities.insert("changeNumber".to_string(), true);
         capabilities.insert("announcementGroup".to_string(), true);
+        capabilities.insert("giftBadges".to_string(), true);
+        capabilities.insert("stories".to_string(), true);
         Self {
             capabilities,
             fetches_messages: true,
@@ -88,7 +90,7 @@ pub(super) async fn register_device(
         response
             .uuid
             .unwrap_or_else(|| message.number().to_string()),
-        response.device_id.unwrap_or(1),
+        response.device_id.unwrap_or(1).into(),
     );
 
     Ok(Credentials {

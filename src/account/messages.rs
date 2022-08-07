@@ -3,13 +3,15 @@ use std::time::SystemTime;
 use libsignal_protocol::{CiphertextMessage, DeviceId};
 use serde::{Deserialize, Serialize};
 
-use crate::utils::serde::serialize_ciphertext_message;
+use crate::utils::serde::{
+    deserialize_device_id_vec, serialize_ciphertext_message, serialize_device_id,
+};
 
 #[derive(Serialize)]
 pub(crate) struct SendMetadata {
     #[serde(rename = "type")]
     msg_type: u8,
-    #[serde(rename = "destinationDeviceId")]
+    #[serde(rename = "destinationDeviceId", serialize_with = "serialize_device_id")]
     device_id: DeviceId,
     #[serde(rename = "destinationRegistrationId")]
     registration_id: u32,
@@ -54,14 +56,21 @@ impl MessagesWrapper {
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct MessageResponse409 {
-    #[serde(rename = "missingDevices")]
+    #[serde(
+        rename = "missingDevices",
+        deserialize_with = "deserialize_device_id_vec"
+    )]
     pub(crate) missing_devices: Vec<DeviceId>,
-    #[serde(rename = "extraDevices")]
+    #[serde(
+        rename = "extraDevices",
+        deserialize_with = "deserialize_device_id_vec"
+    )]
     pub(crate) extra_devices: Vec<DeviceId>,
 }
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct MessageResponse200 {
     #[serde(rename = "needsSync")]
+    #[allow(dead_code)]
     pub(crate) needs_sync: bool,
 }

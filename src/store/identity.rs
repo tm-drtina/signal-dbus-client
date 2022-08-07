@@ -74,7 +74,10 @@ impl IdentityKeyStore for SledIdentityStore {
     async fn get_identity_key_pair(&self, _ctx: Context) -> SignalResult<IdentityKeyPair> {
         match self.credentials.get(IDENTITY_KEY_PAIR_KEY) {
             Ok(Some(bytes)) => IdentityKeyPair::try_from(&*bytes),
-            Ok(None) => Err(SignalProtocolError::InvalidState("uninitialized", String::new())),
+            Ok(None) => Err(SignalProtocolError::InvalidState(
+                "uninitialized",
+                String::new(),
+            )),
             Err(err) => Err(sled_to_signal_error("get_identity_key_pair", err)),
         }
     }
@@ -87,7 +90,10 @@ impl IdentityKeyStore for SledIdentityStore {
                     .try_into()
                     .expect("Stored bytes are valid u32"),
             )),
-            Ok(None) => Err(SignalProtocolError::InvalidState("uninitialized", String::new())),
+            Ok(None) => Err(SignalProtocolError::InvalidState(
+                "uninitialized",
+                String::new(),
+            )),
             Err(err) => Err(sled_to_signal_error("get_identity_key_pair", err)),
         }
     }

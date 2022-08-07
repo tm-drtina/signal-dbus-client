@@ -4,17 +4,14 @@ use std::path::Path;
 use async_trait::async_trait;
 use libsignal_protocol::error::Result as SignalResult;
 use libsignal_protocol::{
-    Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyRecord, PreKeyStore,
-    ProtocolAddress, ProtocolStore, SessionRecord, SessionStore, SignedPreKeyRecord,
-    SignedPreKeyStore,
+    Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyId, PreKeyRecord,
+    PreKeyStore, ProtocolAddress, ProtocolStore, SessionRecord, SessionStore, SignedPreKeyId,
+    SignedPreKeyRecord, SignedPreKeyStore,
 };
 
 use crate::error::Result;
 
 use super::{SledIdentityStore, SledPreKeyStore, SledSessionStore, SledSignedPreKeyStore};
-
-type PreKeyId = u32;
-type SignedPreKeyId = u32;
 
 pub(crate) struct SledStateStore {
     pub(crate) session_store: SledSessionStore,

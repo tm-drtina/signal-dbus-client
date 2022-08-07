@@ -11,6 +11,3 @@ use session::SledSessionStore;
 use signed_pre_key::SledSignedPreKeyStore;
 
 pub(crate) use state_store::SledStateStore;
-
-type PreKeyId = u32;
-type SignedPreKeyId = u32;

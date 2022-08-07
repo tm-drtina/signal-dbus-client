@@ -5,8 +5,8 @@ authors = ["Tomas Drtina <tm.drtina@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-libsignal-protocol = { git = "https://github.com/signalapp/libsignal.git", tag = "v0.18.1" }
-signal-provisioning-api = { git = "https://github.com/tm-drtina/signal-provisioning-api.git", tag = "v0.4.0" }
+libsignal-protocol = { git = "https://github.com/signalapp/libsignal.git", tag = "v0.19.3" }
+signal-provisioning-api = { git = "https://github.com/tm-drtina/signal-provisioning-api.git", tag = "v0.5.0" }
 
 rand = "0.7.3"
 

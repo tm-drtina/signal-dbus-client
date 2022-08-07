@@ -54,7 +54,7 @@ impl<'r, R: Rng + CryptoRng + Clone> AccountManager<'r, R> {
     pub async fn initialize_pre_keys(&mut self) -> Result<()> {
         let pre_keys = generate_pre_keys(100, self.csprng);
         let identity_key_pair = self.state.get_identity_key_pair(None).await?;
-        let signed_pre_key = generate_signed_pre_key(&identity_key_pair, 1, self.csprng)?;
+        let signed_pre_key = generate_signed_pre_key(&identity_key_pair, 1.into(), self.csprng)?;
 
         for pre_key in pre_keys.iter() {
             self.state

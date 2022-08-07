@@ -1,7 +1,9 @@
 use std::convert::TryFrom;
 
 use base64::STANDARD_NO_PAD;
-use libsignal_protocol::{CiphertextMessage, IdentityKey, PublicKey};
+use libsignal_protocol::{
+    CiphertextMessage, DeviceId, IdentityKey, PreKeyId, PublicKey, SignedPreKeyId,
+};
 use serde::{de::Error, Deserialize, Deserializer, Serializer};
 
 pub(crate) fn deserialize_identity_key<'de, D>(deserializer: D) -> Result<IdentityKey, D::Error>
@@ -66,4 +68,62 @@ where
 {
     let encoded = base64::encode(value.serialize());
     serializer.serialize_str(&encoded)
+}
+
+pub(crate) fn deserialize_device_id<'de, D>(deserializer: D) -> Result<DeviceId, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let num: u32 = Deserialize::deserialize(deserializer)?;
+    Ok(DeviceId::from(num))
+}
+
+pub(crate) fn deserialize_device_id_vec<'de, D>(deserializer: D) -> Result<Vec<DeviceId>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let nums: Vec<u32> = Deserialize::deserialize(deserializer)?;
+    Ok(nums.into_iter().map(DeviceId::from).collect())
+}
+
+pub(crate) fn serialize_device_id<S>(value: &DeviceId, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_u32((*value).into())
+}
+
+pub(crate) fn deserialize_pre_key_id<'de, D>(deserializer: D) -> Result<PreKeyId, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let num: u32 = Deserialize::deserialize(deserializer)?;
+    Ok(PreKeyId::from(num))
+}
+
+pub(crate) fn serialize_pre_key_id<S>(value: &PreKeyId, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_u32((*value).into())
+}
+
+pub(crate) fn deserialize_signed_pre_key_id<'de, D>(
+    deserializer: D,
+) -> Result<SignedPreKeyId, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let num: u32 = Deserialize::deserialize(deserializer)?;
+    Ok(SignedPreKeyId::from(num))
+}
+
+pub(crate) fn serialize_signed_pre_key_id<S>(
+    value: &SignedPreKeyId,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_u32((*value).into())
 }

@@ -25,7 +25,10 @@ where
                         .await
                         .start_send_unpin(TungMessage::Pong(data))?;
                 }
-                TungMessage::Frame(_) | TungMessage::Pong(_) | TungMessage::Text(_) | TungMessage::Close(_) => {}
+                TungMessage::Frame(_)
+                | TungMessage::Pong(_)
+                | TungMessage::Text(_)
+                | TungMessage::Close(_) => {}
                 TungMessage::Binary(data) => {
                     if let Some(request_id) = socket.process_message(&data).unwrap() {
                         let ack = ProvisioningSocket::acknowledge(request_id);

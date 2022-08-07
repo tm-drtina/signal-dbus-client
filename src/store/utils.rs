@@ -30,7 +30,7 @@ impl AsRef<[u8]> for ProtocolAddressBytes {
 impl From<&ProtocolAddress> for ProtocolAddressBytes {
     fn from(addr: &ProtocolAddress) -> Self {
         let str_bytes = addr.name().bytes();
-        let device_id_bytes = addr.device_id().to_le_bytes();
+        let device_id_bytes = u32::from(addr.device_id()).to_le_bytes();
         Self(str_bytes.chain(device_id_bytes).collect())
     }
 }
@@ -41,7 +41,7 @@ impl From<ProtocolAddressBytes> for ProtocolAddress {
         let name = String::from_utf8_lossy(name_bytes).to_string();
 
         let device_id_bytes = bytes.device_id_bytes();
-        let device_id = DeviceId::from_le_bytes(device_id_bytes);
+        let device_id = DeviceId::from(u32::from_le_bytes(device_id_bytes));
 
         Self::new(name, device_id)
     }
