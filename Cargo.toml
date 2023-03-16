@@ -5,15 +5,16 @@ authors = ["Tomas Drtina <tm.drtina@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-libsignal-protocol = { git = "https://github.com/signalapp/libsignal.git", tag = "v0.19.3" }
-signal-provisioning-api = { git = "https://github.com/tm-drtina/signal-provisioning-api.git", tag = "v0.5.0" }
+libsignal-protocol = { git = "https://github.com/signalapp/libsignal.git", tag = "v0.22.2" }
+signal-provisioning-api = { path = "../signal-provisioning-api" }
+# signal-provisioning-api = { git = "https://github.com/tm-drtina/signal-provisioning-api.git", tag = "v0.6.0" }
 
 rand = "0.7.3"
 
 qrcode = "0.12"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-base64 = "0.13"
+base64 = "0.21"
 prost = "0.9"
 
 futures-util = "0.3"

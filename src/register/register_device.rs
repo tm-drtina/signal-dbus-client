@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use base64::STANDARD_NO_PAD;
+use base64::engine::{Engine as _, general_purpose::STANDARD_NO_PAD};
 use hyper::Method;
 use libsignal_protocol::ProtocolAddress;
 use signal_provisioning_api::ProvisionMessage;
@@ -71,7 +71,7 @@ pub(super) async fn register_device(
 
     let mut api_pass = [0u8; 16];
     OsRng.fill_bytes(&mut api_pass);
-    let api_pass = base64::encode_config(api_pass, STANDARD_NO_PAD);
+    let api_pass = STANDARD_NO_PAD.encode(api_pass);
 
     let http_client = HttpClient::new(message.number(), &api_pass, api_config)?;
     let response: DeviceRegistrationResponse = http_client

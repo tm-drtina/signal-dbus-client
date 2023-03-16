@@ -1,6 +1,7 @@
 use std::io::Read;
 use std::ops::Deref;
 
+use base64::engine::{Engine as _, general_purpose::STANDARD};
 use hyper::body::{Buf, HttpBody};
 use hyper::header::{
     HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE, HOST, USER_AGENT,
@@ -29,7 +30,7 @@ impl HttpClient {
         let mut default_headers = HeaderMap::new();
 
         let creds = format!("{}:{}", username, password);
-        let auth_value = format!("Basic {}", base64::encode(creds));
+        let auth_value = format!("Basic {}", STANDARD.encode(creds));
         let mut auth_value = HeaderValue::from_str(&auth_value).expect("Base64 chars are allowed.");
         auth_value.set_sensitive(true);
         default_headers.insert(AUTHORIZATION, auth_value);
