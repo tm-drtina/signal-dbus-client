@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use futures_util::{Sink, SinkExt, Stream, StreamExt};
 use tokio::sync::Mutex;
-use tungstenite::{Error as TungError, Message as TungMessage};
+use tokio_tungstenite::tungstenite::{Error as TungError, Message as TungMessage};
 
 use signal_provisioning_api::{ProvisionMessage, ProvisioningSocket, ProvisioningState};
 

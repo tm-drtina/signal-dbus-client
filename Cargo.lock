@@ -1382,7 +1382,6 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "tokio-tungstenite",
- "tungstenite",
 ]
 
 [[package]]
