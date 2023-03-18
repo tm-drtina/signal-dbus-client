@@ -11,7 +11,10 @@ use crate::common::ApiConfig;
 use crate::error::{Error, Result};
 use crate::utils::{connect_wss, qrcode_image};
 
-async fn process_stream<Si, St>(sink: Arc<Mutex<Si>>, mut stream: St) -> Result<ProvisionMessage>
+async fn process_stream<Si, St>(
+    sink: Arc<Mutex<Si>>,
+    mut stream: St,
+) -> Result<Box<ProvisionMessage>>
 where
     Si: Sink<TungMessage, Error = TungError> + Unpin,
     St: Stream<Item = std::result::Result<TungMessage, TungError>> + Unpin,
@@ -71,7 +74,7 @@ where
     }
 }
 
-pub(super) async fn get_provision_message(api_config: &ApiConfig) -> Result<ProvisionMessage> {
+pub(super) async fn get_provision_message(api_config: &ApiConfig) -> Result<Box<ProvisionMessage>> {
     let (sink, stream) = connect_wss(api_config).await?.split();
     let sink = Arc::new(Mutex::new(sink));
     let clone = Arc::clone(&sink);

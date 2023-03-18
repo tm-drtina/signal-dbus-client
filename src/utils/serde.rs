@@ -1,6 +1,9 @@
 use std::convert::TryFrom;
 
-use base64::engine::{Engine as _, general_purpose::{STANDARD, STANDARD_NO_PAD}};
+use base64::engine::{
+    general_purpose::{STANDARD, STANDARD_NO_PAD},
+    Engine as _,
+};
 use libsignal_protocol::{
     CiphertextMessage, DeviceId, IdentityKey, PreKeyId, PublicKey, SignedPreKeyId,
 };

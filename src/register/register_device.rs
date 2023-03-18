@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use base64::engine::{Engine as _, general_purpose::STANDARD_NO_PAD};
+use base64::engine::{general_purpose::STANDARD_NO_PAD, Engine as _};
 use hyper::Method;
 use libsignal_protocol::ProtocolAddress;
 use signal_provisioning_api::ProvisionMessage;
@@ -55,14 +55,17 @@ impl DeviceRegistrationRequest {
 
 #[derive(Deserialize, Debug)]
 struct DeviceRegistrationResponse {
-    uuid: Option<String>,
+    // TODO: should we rename this to ACI?
+    uuid: String,
+    #[allow(dead_code)]
+    pni: String,
     #[serde(rename = "deviceId")]
     device_id: Option<u32>,
 }
 
 pub(super) async fn register_device(
     api_config: &ApiConfig,
-    message: ProvisionMessage,
+    message: &ProvisionMessage,
     name: &str,
 ) -> Result<Credentials> {
     let registration_id = OsRng.next_u32() & 0x00003fff;
@@ -86,17 +89,12 @@ pub(super) async fn register_device(
         .json()
         .await?;
 
-    let address = ProtocolAddress::new(
-        response
-            .uuid
-            .unwrap_or_else(|| message.number().to_string()),
-        response.device_id.unwrap_or(1).into(),
-    );
+    let address = ProtocolAddress::new(response.uuid, response.device_id.unwrap_or(1).into());
 
     Ok(Credentials {
         address,
         api_pass,
-        identity_key_pair: *message.identity_key_pair(),
+        aci_identity_key_pair: *message.aci_identity_key_pair(),
         registration_id,
     })
 }

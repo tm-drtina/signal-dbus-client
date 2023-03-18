@@ -17,12 +17,12 @@ pub async fn register(data_dir: PathBuf, name: &str) -> Result<()> {
 
     let provision_message = provision::get_provision_message(&api_config).await?;
     eprintln!("Received provision message.");
-    let creds = register_device::register_device(&api_config, provision_message, name).await?;
+    let creds = register_device::register_device(&api_config, &provision_message, name).await?;
     eprintln!("Device registered successfuly.");
 
     let state_store = SledStateStore::new(&data_dir)?;
     state_store.register_new_account(
-        creds.identity_key_pair,
+        creds.aci_identity_key_pair,
         creds.registration_id,
         creds.address,
         creds.api_pass,

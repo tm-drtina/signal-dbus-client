@@ -13,6 +13,7 @@ pub enum Error {
     SerdeError(serde_json::Error),
     HyperError(hyper::Error),
     SledError(sled::Error),
+    UuidParsingError(uuid::Error),
 
     ProvisioningFailed,
     ConfigError(String),
@@ -28,6 +29,7 @@ impl From<signal_provisioning_api::Error> for Error {
             signal_provisioning_api::Error::SignalProtocolError(err) => {
                 Self::SignalProtocolError(err)
             }
+            signal_provisioning_api::Error::UuidParsingError(err) => Self::UuidParsingError(err),
         }
     }
 }

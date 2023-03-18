@@ -1,7 +1,7 @@
 use std::io::Read;
 use std::ops::Deref;
 
-use base64::engine::{Engine as _, general_purpose::STANDARD};
+use base64::engine::{general_purpose::STANDARD, Engine as _};
 use hyper::body::{Buf, HttpBody};
 use hyper::header::{
     HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE, HOST, USER_AGENT,
