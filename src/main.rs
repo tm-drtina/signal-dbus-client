@@ -65,7 +65,7 @@ fn test_writeable_directory(path: &Path) -> Result<()> {
             use std::os::unix::fs::DirBuilderExt;
             dir_builder.mode(0o700);
         }
-        dir_builder.create(&path)?;
+        dir_builder.create(path)?;
     }
     if !path.is_dir() {
         return Err(std::io::Error::new(

@@ -65,7 +65,7 @@ pub(super) async fn register_device(
     message: ProvisionMessage,
     name: &str,
 ) -> Result<Credentials> {
-    let registration_id = (OsRng.next_u32() as u32) & 0x00003fff;
+    let registration_id = OsRng.next_u32() & 0x00003fff;
     // Should we encrypt device name as in TS sources?
     let registration_request = DeviceRegistrationRequest::new(name.to_string(), registration_id);
 
