@@ -32,7 +32,7 @@ impl Default for ApiConfig {
         let cert_bytes = &include_bytes!("./signal_certs.pem")[..];
 
         Self {
-            user_agent: "Signal-Desktop/5.25.0 Linux".to_string(),
+            user_agent: "Signal-Desktop/6.10.1 Linux".to_string(),
             authority: Authority::from_static("textsecure-service.whispersystems.org:443"),
             cert_bytes: Vec::from(cert_bytes).into_boxed_slice(),
         }

@@ -85,6 +85,10 @@ impl HttpClient {
         let resp = self.client.request(req).await?;
         if resp.status().is_success() {
             Ok(resp.into())
+        } else if resp.status().as_u16() == 499 {
+            Err(Error::DeprecatedHttpError(
+                WrappedResponse(resp).text().await?,
+            ))
         } else {
             Err(Error::HttpError(
                 resp.status(),

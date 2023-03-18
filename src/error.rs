@@ -8,6 +8,7 @@ pub enum Error {
     SocketError(tungstenite::Error),
     HttpParserError(tungstenite::http::Error),
     HttpError(StatusCode, String),
+    DeprecatedHttpError(String),
     IoError(std::io::Error),
     SerdeError(serde_json::Error),
     HyperError(hyper::Error),
