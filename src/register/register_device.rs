@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
-use base64::STANDARD_NO_PAD;
+use base64::engine::{general_purpose::STANDARD_NO_PAD, Engine as _};
 use hyper::Method;
 use libsignal_protocol::ProtocolAddress;
 use signal_provisioning_api::ProvisionMessage;
+use uuid::Uuid;
 
 use rand::{rngs::OsRng, RngCore};
 
@@ -55,23 +56,27 @@ impl DeviceRegistrationRequest {
 
 #[derive(Deserialize, Debug)]
 struct DeviceRegistrationResponse {
-    uuid: Option<String>,
+    // TODO: should we rename this to ACI?
+    // TODO: should we keep it as string?
+    uuid: Uuid,
+    #[allow(dead_code)]
+    pni: Uuid,
     #[serde(rename = "deviceId")]
     device_id: Option<u32>,
 }
 
 pub(super) async fn register_device(
     api_config: &ApiConfig,
-    message: ProvisionMessage,
+    message: &ProvisionMessage,
     name: &str,
 ) -> Result<Credentials> {
-    let registration_id = (OsRng.next_u32() as u32) & 0x00003fff;
+    let registration_id = OsRng.next_u32() & 0x00003fff;
     // Should we encrypt device name as in TS sources?
     let registration_request = DeviceRegistrationRequest::new(name.to_string(), registration_id);
 
     let mut api_pass = [0u8; 16];
     OsRng.fill_bytes(&mut api_pass);
-    let api_pass = base64::encode_config(api_pass, STANDARD_NO_PAD);
+    let api_pass = STANDARD_NO_PAD.encode(api_pass);
 
     let http_client = HttpClient::new(message.number(), &api_pass, api_config)?;
     let response: DeviceRegistrationResponse = http_client
@@ -86,17 +91,12 @@ pub(super) async fn register_device(
         .json()
         .await?;
 
-    let address = ProtocolAddress::new(
-        response
-            .uuid
-            .unwrap_or_else(|| message.number().to_string()),
-        response.device_id.unwrap_or(1).into(),
-    );
+    let address = ProtocolAddress::new(response.uuid.to_string(), response.device_id.unwrap_or(1).into());
 
     Ok(Credentials {
         address,
         api_pass,
-        identity_key_pair: *message.identity_key_pair(),
+        aci_identity_key_pair: *message.aci_identity_key_pair(),
         registration_id,
     })
 }

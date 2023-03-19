@@ -5,27 +5,31 @@ authors = ["Tomas Drtina <tm.drtina@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-libsignal-protocol = { git = "https://github.com/signalapp/libsignal.git", tag = "v0.19.3" }
-signal-provisioning-api = { git = "https://github.com/tm-drtina/signal-provisioning-api.git", tag = "v0.5.0" }
+libsignal-protocol = { git = "https://github.com/signalapp/libsignal.git", tag = "v0.22.2" }
+signal-provisioning-api = { git = "https://github.com/tm-drtina/signal-provisioning-api.git", tag = "v0.6.0" }
 
 rand = "0.7.3"
 
-qrcode = "0.12"
+qrcode = { version = "0.12", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-base64 = "0.13"
+base64 = "0.21"
+uuid = { version = "1.1.2", features = ["serde"] }
+prost = "0.9"
 
-futures-util = "0.3"
+futures-util = { version = "0.3", default-features = false }
 hyper = { version = "0.14", features = ["client", "http1", "tcp"] }
 rustls-pemfile = "1"
 thiserror = "1.0.30"
 tokio = { version = "1", features = ["macros", "rt", "time", "sync"] }
 tokio-rustls = "0.23.1"
-tokio-tungstenite = "0.17.1"
-tungstenite = "0.17.2"
+tokio-tungstenite = "0.18"
 
-clap = { version = "3", features = ["derive"] }
+clap = { version = "4", features = ["derive"] }
 dirs = "4"
 async-trait = "0.1"
 
 sled = "0.34.6"
+
+[build-dependencies]
+prost-build = "0.9"

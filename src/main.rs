@@ -6,8 +6,8 @@ use signal_dbus_client::error::Result;
 use signal_dbus_client::{register, send_message};
 
 #[derive(Parser)]
-#[clap(author, version, about, long_about = None)]
-#[clap(
+#[command(author, version, about, long_about = None)]
+#[command(
     propagate_version = true,
     subcommand_required = true,
     arg_required_else_help = true
@@ -16,7 +16,7 @@ struct Cli {
     #[clap(subcommand)]
     command: Commands,
 
-    #[clap(
+    #[arg(
         long,
         short,
         value_name = "DIRECTORY",
@@ -27,14 +27,14 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    #[clap(about = "Register new sub-device")]
+    #[command(about = "Register new sub-device")]
     Register {
-        #[clap(help = "Sets the name of newly registered sub-device")]
+        #[arg(help = "Sets the name of newly registered sub-device")]
         name: String,
     },
-    #[clap(about = "Sends message to specified recipient")]
+    #[command(about = "Sends message to specified recipient")]
     Send {
-        #[clap(help = "Recipient of the message. Either E164 telephone format or UUID")]
+        #[arg(help = "Recipient of the message. Either E164 telephone format or UUID")]
         recipient: String,
         message: String,
     },
@@ -65,7 +65,7 @@ fn test_writeable_directory(path: &Path) -> Result<()> {
             use std::os::unix::fs::DirBuilderExt;
             dir_builder.mode(0o700);
         }
-        dir_builder.create(&path)?;
+        dir_builder.create(path)?;
     }
     if !path.is_dir() {
         return Err(std::io::Error::new(

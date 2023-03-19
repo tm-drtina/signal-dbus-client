@@ -1,6 +1,9 @@
 use std::convert::TryFrom;
 
-use base64::STANDARD_NO_PAD;
+use base64::engine::{
+    general_purpose::{STANDARD, STANDARD_NO_PAD},
+    Engine as _,
+};
 use libsignal_protocol::{
     CiphertextMessage, DeviceId, IdentityKey, PreKeyId, PublicKey, SignedPreKeyId,
 };
@@ -11,7 +14,7 @@ where
     D: Deserializer<'de>,
 {
     let s: String = Deserialize::deserialize(deserializer)?;
-    let decoded = base64::decode_config(s, STANDARD_NO_PAD).expect("Valid base64.");
+    let decoded = STANDARD_NO_PAD.decode(s).expect("Valid base64.");
     IdentityKey::try_from(&decoded[..]).map_err(D::Error::custom)
 }
 
@@ -22,7 +25,7 @@ pub(crate) fn serialize_identity_key<S>(
 where
     S: Serializer,
 {
-    let encoded = base64::encode_config(value.serialize(), STANDARD_NO_PAD);
+    let encoded = STANDARD_NO_PAD.encode(value.serialize());
     serializer.serialize_str(&encoded)
 }
 
@@ -31,7 +34,7 @@ where
     D: Deserializer<'de>,
 {
     let s: String = Deserialize::deserialize(deserializer)?;
-    let decoded = base64::decode_config(s, STANDARD_NO_PAD).expect("Valid base64.");
+    let decoded = STANDARD_NO_PAD.decode(s).expect("Valid base64.");
     PublicKey::try_from(&decoded[..]).map_err(D::Error::custom)
 }
 
@@ -39,7 +42,7 @@ pub(crate) fn serialize_public_key<S>(value: &PublicKey, serializer: S) -> Resul
 where
     S: Serializer,
 {
-    let encoded = base64::encode_config(value.serialize(), STANDARD_NO_PAD);
+    let encoded = STANDARD_NO_PAD.encode(value.serialize());
     serializer.serialize_str(&encoded)
 }
 
@@ -48,14 +51,14 @@ where
     D: Deserializer<'de>,
 {
     let s: String = Deserialize::deserialize(deserializer)?;
-    base64::decode_config(s, STANDARD_NO_PAD).map_err(D::Error::custom)
+    STANDARD_NO_PAD.decode(s).map_err(D::Error::custom)
 }
 
 pub(crate) fn serialize_byte_vec<S>(value: &[u8], serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
-    let encoded = base64::encode_config(value, STANDARD_NO_PAD);
+    let encoded = STANDARD_NO_PAD.encode(value);
     serializer.serialize_str(&encoded)
 }
 
@@ -66,7 +69,7 @@ pub(crate) fn serialize_ciphertext_message<S>(
 where
     S: Serializer,
 {
-    let encoded = base64::encode(value.serialize());
+    let encoded = STANDARD.encode(value.serialize());
     serializer.serialize_str(&encoded)
 }
 
