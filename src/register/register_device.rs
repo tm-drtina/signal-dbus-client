@@ -4,6 +4,7 @@ use base64::engine::{general_purpose::STANDARD_NO_PAD, Engine as _};
 use hyper::Method;
 use libsignal_protocol::ProtocolAddress;
 use signal_provisioning_api::ProvisionMessage;
+use uuid::Uuid;
 
 use rand::{rngs::OsRng, RngCore};
 
@@ -56,9 +57,10 @@ impl DeviceRegistrationRequest {
 #[derive(Deserialize, Debug)]
 struct DeviceRegistrationResponse {
     // TODO: should we rename this to ACI?
-    uuid: String,
+    // TODO: should we keep it as string?
+    uuid: Uuid,
     #[allow(dead_code)]
-    pni: String,
+    pni: Uuid,
     #[serde(rename = "deviceId")]
     device_id: Option<u32>,
 }
@@ -89,7 +91,7 @@ pub(super) async fn register_device(
         .json()
         .await?;
 
-    let address = ProtocolAddress::new(response.uuid, response.device_id.unwrap_or(1).into());
+    let address = ProtocolAddress::new(response.uuid.to_string(), response.device_id.unwrap_or(1).into());
 
     Ok(Credentials {
         address,
