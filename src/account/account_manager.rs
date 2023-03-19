@@ -6,10 +6,11 @@ use libsignal_protocol::{
     message_encrypt, process_prekey_bundle, DeviceId, IdentityKeyStore, PreKeyBundle, PreKeyStore,
     ProtocolAddress, SessionStore, SignedPreKeyStore,
 };
+use prost::Message;
 use rand::{CryptoRng, Rng};
 
 use crate::account::messages::{
-    MessageResponse200, MessageResponse409, MessagesWrapper, SendMetadata,
+    MessageResponse200, MessageResponse409, MessagesWrapper, SendMetadata, create_sync_message, create_data_message, create_message,
 };
 use crate::account::pre_keys::DeviceKeys;
 use crate::common::{ApiConfig, ApiPath};
@@ -25,7 +26,7 @@ pub(crate) struct AccountManager<'r, R: Rng + CryptoRng + Clone> {
     csprng: &'r mut R,
 }
 
-impl<'r, R: Rng + CryptoRng + Clone> AccountManager<'r, R> {
+impl<'r, R: Rng + CryptoRng + Clone + 'r> AccountManager<'r, R> {
     pub(crate) fn new(
         data_dir: PathBuf,
         csprng: &'r mut R,
@@ -158,7 +159,42 @@ impl<'r, R: Rng + CryptoRng + Clone> AccountManager<'r, R> {
         }
     }
 
-    pub async fn send_message(&self, recipient: &str, message: &str) -> Result<()> {
+    pub async fn send_self_message(self, text: String) -> Result<()> {
+        let data_message = create_data_message(text);
+        let content = create_sync_message(
+            self.state.identity_store.get_address()?.name().to_string(),
+            data_message,
+        );
+
+        self.send_proto_message(
+            &self.state.identity_store.get_address()?.name(),
+            &content.encode_to_vec(),
+        )
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn send_message(&self, recipient: &str, text: String) -> Result<()> {
+        let data_message = create_data_message(text);
+        let content = create_message(data_message.clone());
+        let MessageResponse200 { needs_sync } = self.send_proto_message(recipient, &content.encode_to_vec()).await?;
+
+        if needs_sync {
+            let sync_content = create_sync_message(
+                recipient.to_string(),
+                data_message,
+            );
+            self.send_proto_message(
+                &self.state.identity_store.get_address()?.name(),
+                &sync_content.encode_to_vec(),
+            )
+            .await?;           
+        }
+        Ok(())
+    }
+
+    async fn send_proto_message(&self, recipient: &str, proto: &[u8]) -> Result<MessageResponse200> {
         loop {
             let addrs = self.load_or_create_sessions(recipient).await?;
 
@@ -169,14 +205,9 @@ impl<'r, R: Rng + CryptoRng + Clone> AccountManager<'r, R> {
                 let mut session_store = self.state.session_store.clone();
                 let mut identity_store = self.state.identity_store.clone();
 
-                let ciphertext_message = message_encrypt(
-                    message.as_bytes(),
-                    &addr,
-                    &mut session_store,
-                    &mut identity_store,
-                    None,
-                )
-                .await?;
+                let ciphertext_message =
+                    message_encrypt(proto, &addr, &mut session_store, &mut identity_store, None)
+                        .await?;
 
                 send_metadata.push(SendMetadata::new(
                     ciphertext_message,
@@ -189,7 +220,14 @@ impl<'r, R: Rng + CryptoRng + Clone> AccountManager<'r, R> {
 
             let response_result = self
                 .http_client
-                .send_json(Method::PUT, ApiPath::SendMessage { recipient }, &body)
+                .send_json(
+                    Method::PUT,
+                    ApiPath::SendMessage {
+                        recipient,
+                        story: false,
+                    },
+                    &body,
+                )
                 .await;
 
             let response: MessageResponse200 = match response_result {
@@ -228,11 +266,7 @@ impl<'r, R: Rng + CryptoRng + Clone> AccountManager<'r, R> {
                 }
             };
 
-            eprintln!("{:?}", response);
-
-            // TODO: send sync message
-
-            return Ok(());
+            return Ok(response);
         }
     }
 }

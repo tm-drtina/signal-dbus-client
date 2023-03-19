@@ -47,6 +47,7 @@ pub enum ApiPath<'a> {
     PreKeys,
     SendMessage {
         recipient: &'a str,
+        story: bool,
     },
     GetSessionKey {
         recipient: &'a str,
@@ -62,8 +63,8 @@ impl<'a> ApiPath<'a> {
                 PathAndQuery::from_str(&format!("/v1/devices/{}", provisioning_code)).unwrap()
             }
             Self::PreKeys => PathAndQuery::from_static("/v2/keys/"),
-            Self::SendMessage { recipient } => {
-                PathAndQuery::from_str(&format!("/v1/messages/{}", recipient)).unwrap()
+            Self::SendMessage { recipient, story } => {
+                PathAndQuery::from_str(&format!("/v1/messages/{}?story={}", recipient, story)).unwrap()
             }
             Self::GetSessionKey {
                 recipient,

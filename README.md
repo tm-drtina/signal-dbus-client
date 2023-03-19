@@ -1,9 +1,7 @@
 # signal-dbus-client
-D-Bus based client for Signal Messenger
+D-Bus based client for Signal Messenger.
 
-## Issues
-- We're not sending sync messages after sending data message
-- Resolve "Note to self" type of messages
+**Warning: Currently in very experimental state. Not recommended for use**
 
 ## Development
 ### Update signal certificate
