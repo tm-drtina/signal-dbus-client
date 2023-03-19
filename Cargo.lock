@@ -1308,6 +1308,7 @@ dependencies = [
 [[package]]
 name = "signal-provisioning-api"
 version = "0.6.0"
+source = "git+https://github.com/tm-drtina/signal-provisioning-api.git?tag=v0.6.0#3360e5fc2f9b37bd6b6e94aa67394537013dd185"
 dependencies = [
  "aes",
  "base64 0.21.0",

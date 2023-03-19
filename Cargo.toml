@@ -6,8 +6,7 @@ edition = "2021"
 
 [dependencies]
 libsignal-protocol = { git = "https://github.com/signalapp/libsignal.git", tag = "v0.22.2" }
-signal-provisioning-api = { path = "../signal-provisioning-api" }
-# signal-provisioning-api = { git = "https://github.com/tm-drtina/signal-provisioning-api.git", tag = "v0.6.0" }
+signal-provisioning-api = { git = "https://github.com/tm-drtina/signal-provisioning-api.git", tag = "v0.6.0" }
 
 rand = "0.7.3"
 
