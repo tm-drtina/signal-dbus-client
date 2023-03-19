@@ -38,6 +38,10 @@ enum Commands {
         recipient: String,
         message: String,
     },
+    #[command(about = "Sends message to specified recipient")]
+    NoteToSelf {
+        message: String,
+    },
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -53,7 +57,8 @@ async fn main() -> Result<()> {
 
     match cli.command {
         Commands::Register { name } => register(data_dir, &name).await,
-        Commands::Send { recipient, message } => send_message(data_dir, &recipient, &message).await,
+        Commands::Send { recipient, message } => send_message(data_dir, Some(&recipient), message).await,
+        Commands::NoteToSelf { message } => send_message(data_dir, None, message).await,
     }
 }
 

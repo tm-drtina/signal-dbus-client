@@ -2,6 +2,7 @@ mod account;
 mod common;
 mod dbus_server;
 pub mod error;
+mod proto;
 mod register;
 mod send;
 mod store;
