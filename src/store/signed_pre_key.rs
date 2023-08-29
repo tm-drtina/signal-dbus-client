@@ -3,7 +3,7 @@ use std::convert::TryFrom;
 use async_trait::async_trait;
 use libsignal_protocol::error::Result as SignalResult;
 use libsignal_protocol::{
-    SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
+    GenericSignedPreKey, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
 };
 use sled::{Db, Tree};
 

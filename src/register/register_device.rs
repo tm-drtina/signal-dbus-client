@@ -91,7 +91,10 @@ pub(super) async fn register_device(
         .json()
         .await?;
 
-    let address = ProtocolAddress::new(response.uuid.to_string(), response.device_id.unwrap_or(1).into());
+    let address = ProtocolAddress::new(
+        response.uuid.to_string(),
+        response.device_id.unwrap_or(1).into(),
+    );
 
     Ok(Credentials {
         address,

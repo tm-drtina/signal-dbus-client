@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use hyper::Method;
 use libsignal_protocol::{
     message_encrypt, process_prekey_bundle, DeviceId, IdentityKeyStore, PreKeyBundle, PreKeyStore,
-    ProtocolAddress, SessionStore, SignedPreKeyStore,
+    ProtocolAddress, SessionStore, SignedPreKeyStore, SignedPreKeyId,
 };
 use rand::{CryptoRng, Rng};
 
@@ -53,16 +53,17 @@ impl<'r, R: Rng + CryptoRng + Clone> AccountManager<'r, R> {
 
     pub async fn initialize_pre_keys(&mut self) -> Result<()> {
         let pre_keys = generate_pre_keys(100, self.csprng);
-        let identity_key_pair = self.state.get_identity_key_pair(None).await?;
-        let signed_pre_key = generate_signed_pre_key(&identity_key_pair, 1.into(), self.csprng)?;
+        let identity_key_pair = self.state.get_identity_key_pair().await?;
+        let signed_pre_key_id = SignedPreKeyId::from(1);
+        let signed_pre_key = generate_signed_pre_key(&identity_key_pair, signed_pre_key_id, self.csprng)?;
 
         for pre_key in pre_keys.iter() {
             self.state
-                .save_pre_key(pre_key.id()?, pre_key, None)
+                .save_pre_key(pre_key.id()?, pre_key)
                 .await?;
         }
         self.state
-            .save_signed_pre_key(signed_pre_key.id()?, &signed_pre_key, None)
+            .save_signed_pre_key(signed_pre_key_id, &signed_pre_key)
             .await?;
 
         let pre_key_state = PreKeyState::new(
@@ -117,7 +118,6 @@ impl<'r, R: Rng + CryptoRng + Clone> AccountManager<'r, R> {
                 &mut identity_store,
                 &bundle,
                 &mut csprng,
-                None,
             )
             .await?;
             addrs.push((remote_address, bundle.registration_id()?));
@@ -174,7 +174,6 @@ impl<'r, R: Rng + CryptoRng + Clone> AccountManager<'r, R> {
                     &addr,
                     &mut session_store,
                     &mut identity_store,
-                    None,
                 )
                 .await?;
 
@@ -207,7 +206,7 @@ impl<'r, R: Rng + CryptoRng + Clone> AccountManager<'r, R> {
                         let addr = ProtocolAddress::new(recipient.to_string(), device_id);
                         let mut session = self
                             .state
-                            .load_session(&addr, None)
+                            .load_session(&addr)
                             .await?
                             .expect("Extra session should be still present.");
                         // TODO: is archiving enough? Shouldn't we delete it?
@@ -218,7 +217,7 @@ impl<'r, R: Rng + CryptoRng + Clone> AccountManager<'r, R> {
                         self.state
                             .session_store
                             .clone()
-                            .store_session(&addr, &session, None)
+                            .store_session(&addr, &session)
                             .await?;
                     }
                     continue;

@@ -4,20 +4,21 @@ use std::path::Path;
 use async_trait::async_trait;
 use libsignal_protocol::error::Result as SignalResult;
 use libsignal_protocol::{
-    Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyId, PreKeyRecord, PreKeyStore,
-    ProtocolAddress, ProtocolStore, SessionRecord, SessionStore, SignedPreKeyId,
-    SignedPreKeyRecord, SignedPreKeyStore,
+    Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, KyberPreKeyId, KyberPreKeyRecord,
+    KyberPreKeyStore, PreKeyId, PreKeyRecord, PreKeyStore, ProtocolAddress, ProtocolStore,
+    SessionRecord, SessionStore, SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
 };
 
 use crate::error::Result;
 
-use super::{SledIdentityStore, SledPreKeyStore, SledSessionStore, SledSignedPreKeyStore};
+use super::{SledIdentityStore, SledPreKeyStore, SledSessionStore, SledSignedPreKeyStore, SledKyberPreKeyStore};
 
 pub(crate) struct SledStateStore {
     pub(crate) session_store: SledSessionStore,
     pub(crate) pre_key_store: SledPreKeyStore,
     pub(crate) signed_pre_key_store: SledSignedPreKeyStore,
     pub(crate) identity_store: SledIdentityStore,
+    pub(crate) kyber_pre_key_store: SledKyberPreKeyStore,
 }
 
 impl SledStateStore {
@@ -29,6 +30,7 @@ impl SledStateStore {
             pre_key_store: db.try_into()?,
             signed_pre_key_store: db.try_into()?,
             identity_store: db.try_into()?,
+            kyber_pre_key_store: db.try_into()?,
         })
     }
 
@@ -143,6 +145,34 @@ impl IdentityKeyStore for SledStateStore {
         identity: &IdentityKey,
     ) -> SignalResult<bool> {
         self.identity_store.save_identity(address, identity).await
+    }
+}
+
+#[async_trait(?Send)]
+impl KyberPreKeyStore for SledStateStore {
+    #[must_use]
+    async fn get_kyber_pre_key(
+        &self,
+        kyber_prekey_id: KyberPreKeyId,
+    ) -> SignalResult<KyberPreKeyRecord> {
+        self.kyber_pre_key_store.get_kyber_pre_key(kyber_prekey_id).await
+    }
+
+    #[must_use]
+    async fn save_kyber_pre_key(
+        &mut self,
+        kyber_prekey_id: KyberPreKeyId,
+        record: &KyberPreKeyRecord,
+    ) -> SignalResult<()> {
+        self.kyber_pre_key_store.save_kyber_pre_key(kyber_prekey_id, record).await
+    }
+
+    #[must_use]
+    async fn mark_kyber_pre_key_used(
+        &mut self,
+        kyber_prekey_id: KyberPreKeyId,
+    ) -> SignalResult<()> {
+        self.kyber_pre_key_store.mark_kyber_pre_key_used(kyber_prekey_id).await
     }
 }
 

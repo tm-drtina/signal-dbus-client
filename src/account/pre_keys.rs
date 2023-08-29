@@ -2,8 +2,8 @@ use std::convert::TryFrom;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use libsignal_protocol::{
-    DeviceId, IdentityKey, IdentityKeyPair, KeyPair, PreKeyBundle, PreKeyId, PreKeyRecord,
-    PublicKey, SignedPreKeyId, SignedPreKeyRecord,
+    DeviceId, GenericSignedPreKey, IdentityKey, IdentityKeyPair, KeyPair, PreKeyBundle, PreKeyId,
+    PreKeyRecord, PublicKey, SignedPreKeyId, SignedPreKeyRecord,
 };
 use rand::{CryptoRng, Rng};
 use serde::{Deserialize, Serialize};
