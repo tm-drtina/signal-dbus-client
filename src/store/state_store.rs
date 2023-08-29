@@ -11,7 +11,10 @@ use libsignal_protocol::{
 
 use crate::error::Result;
 
-use super::{SledIdentityStore, SledPreKeyStore, SledSessionStore, SledSignedPreKeyStore, SledKyberPreKeyStore};
+use super::{
+    SledIdentityStore, SledKyberPreKeyStore, SledPreKeyStore, SledSessionStore,
+    SledSignedPreKeyStore,
+};
 
 pub(crate) struct SledStateStore {
     pub(crate) session_store: SledSessionStore,
@@ -155,7 +158,9 @@ impl KyberPreKeyStore for SledStateStore {
         &self,
         kyber_prekey_id: KyberPreKeyId,
     ) -> SignalResult<KyberPreKeyRecord> {
-        self.kyber_pre_key_store.get_kyber_pre_key(kyber_prekey_id).await
+        self.kyber_pre_key_store
+            .get_kyber_pre_key(kyber_prekey_id)
+            .await
     }
 
     #[must_use]
@@ -164,7 +169,9 @@ impl KyberPreKeyStore for SledStateStore {
         kyber_prekey_id: KyberPreKeyId,
         record: &KyberPreKeyRecord,
     ) -> SignalResult<()> {
-        self.kyber_pre_key_store.save_kyber_pre_key(kyber_prekey_id, record).await
+        self.kyber_pre_key_store
+            .save_kyber_pre_key(kyber_prekey_id, record)
+            .await
     }
 
     #[must_use]
@@ -172,7 +179,9 @@ impl KyberPreKeyStore for SledStateStore {
         &mut self,
         kyber_prekey_id: KyberPreKeyId,
     ) -> SignalResult<()> {
-        self.kyber_pre_key_store.mark_kyber_pre_key_used(kyber_prekey_id).await
+        self.kyber_pre_key_store
+            .mark_kyber_pre_key_used(kyber_prekey_id)
+            .await
     }
 }
 

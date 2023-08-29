@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use hyper::Method;
 use libsignal_protocol::{
     message_encrypt, process_prekey_bundle, DeviceId, IdentityKeyStore, PreKeyBundle, PreKeyStore,
-    ProtocolAddress, SessionStore, SignedPreKeyStore, SignedPreKeyId,
+    ProtocolAddress, SessionStore, SignedPreKeyId, SignedPreKeyStore,
 };
 use rand::{CryptoRng, Rng};
 
@@ -55,12 +55,11 @@ impl<'r, R: Rng + CryptoRng + Clone> AccountManager<'r, R> {
         let pre_keys = generate_pre_keys(100, self.csprng);
         let identity_key_pair = self.state.get_identity_key_pair().await?;
         let signed_pre_key_id = SignedPreKeyId::from(1);
-        let signed_pre_key = generate_signed_pre_key(&identity_key_pair, signed_pre_key_id, self.csprng)?;
+        let signed_pre_key =
+            generate_signed_pre_key(&identity_key_pair, signed_pre_key_id, self.csprng)?;
 
         for pre_key in pre_keys.iter() {
-            self.state
-                .save_pre_key(pre_key.id()?, pre_key)
-                .await?;
+            self.state.save_pre_key(pre_key.id()?, pre_key).await?;
         }
         self.state
             .save_signed_pre_key(signed_pre_key_id, &signed_pre_key)
