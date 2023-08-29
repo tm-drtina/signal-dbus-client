@@ -3,7 +3,7 @@ use std::convert::TryFrom;
 use async_trait::async_trait;
 use libsignal_protocol::error::Result as SignalResult;
 use libsignal_protocol::{
-    Context, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
+    SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
 };
 use sled::{Db, Tree};
 
@@ -23,7 +23,6 @@ impl SignedPreKeyStore for SledSignedPreKeyStore {
     async fn get_signed_pre_key(
         &self,
         signed_prekey_id: SignedPreKeyId,
-        _ctx: Context,
     ) -> SignalResult<SignedPreKeyRecord> {
         let key = u32::from(signed_prekey_id).to_le_bytes();
         match self.0.get(key) {
@@ -37,7 +36,6 @@ impl SignedPreKeyStore for SledSignedPreKeyStore {
         &mut self,
         signed_prekey_id: SignedPreKeyId,
         record: &SignedPreKeyRecord,
-        _ctx: Context,
     ) -> SignalResult<()> {
         // This overwrites old values, which matches Java behavior, but is it correct?
         let key = u32::from(signed_prekey_id).to_le_bytes();

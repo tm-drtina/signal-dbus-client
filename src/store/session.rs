@@ -2,7 +2,7 @@ use std::convert::TryFrom;
 
 use async_trait::async_trait;
 use libsignal_protocol::error::Result as SignalResult;
-use libsignal_protocol::{Context, ProtocolAddress, SessionRecord, SessionStore};
+use libsignal_protocol::{ProtocolAddress, SessionRecord, SessionStore};
 use sled::{Db, Tree};
 
 use super::utils::{sled_to_signal_error, ProtocolAddressBytes};
@@ -42,7 +42,6 @@ impl SessionStore for SledSessionStore {
     async fn load_session<'s, 'a>(
         &'s self,
         address: &'a ProtocolAddress,
-        _ctx: Context,
     ) -> SignalResult<Option<SessionRecord>> {
         let key = ProtocolAddressBytes::from(address);
         match self.0.get(key) {
@@ -56,7 +55,6 @@ impl SessionStore for SledSessionStore {
         &mut self,
         address: &ProtocolAddress,
         record: &SessionRecord,
-        _ctx: Context,
     ) -> SignalResult<()> {
         let key = ProtocolAddressBytes::from(address);
         let value = record.serialize()?;

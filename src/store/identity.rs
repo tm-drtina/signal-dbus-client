@@ -3,8 +3,7 @@ use std::convert::{TryFrom, TryInto};
 use async_trait::async_trait;
 use libsignal_protocol::error::Result as SignalResult;
 use libsignal_protocol::{
-    Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, ProtocolAddress,
-    SignalProtocolError,
+    Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, ProtocolAddress, SignalProtocolError,
 };
 use sled::{Db, Tree};
 
@@ -71,7 +70,7 @@ impl SledIdentityStore {
 
 #[async_trait(?Send)]
 impl IdentityKeyStore for SledIdentityStore {
-    async fn get_identity_key_pair(&self, _ctx: Context) -> SignalResult<IdentityKeyPair> {
+    async fn get_identity_key_pair(&self) -> SignalResult<IdentityKeyPair> {
         match self.credentials.get(IDENTITY_KEY_PAIR_KEY) {
             Ok(Some(bytes)) => IdentityKeyPair::try_from(&*bytes),
             Ok(None) => Err(SignalProtocolError::InvalidState(
@@ -82,7 +81,7 @@ impl IdentityKeyStore for SledIdentityStore {
         }
     }
 
-    async fn get_local_registration_id(&self, _ctx: Context) -> SignalResult<u32> {
+    async fn get_local_registration_id(&self) -> SignalResult<u32> {
         match self.credentials.get(REGISTRATION_ID_KEY) {
             Ok(Some(bytes)) => Ok(u32::from_le_bytes(
                 bytes
@@ -103,7 +102,6 @@ impl IdentityKeyStore for SledIdentityStore {
         address: &ProtocolAddress,
         identity: &IdentityKey,
         _direction: Direction,
-        _ctx: Context,
     ) -> SignalResult<bool> {
         let key = ProtocolAddressBytes::from(address);
         match self.known_keys.get(key) {
@@ -115,11 +113,7 @@ impl IdentityKeyStore for SledIdentityStore {
         }
     }
 
-    async fn get_identity(
-        &self,
-        address: &ProtocolAddress,
-        _ctx: Context,
-    ) -> SignalResult<Option<IdentityKey>> {
+    async fn get_identity(&self, address: &ProtocolAddress) -> SignalResult<Option<IdentityKey>> {
         let key = ProtocolAddressBytes::from(address);
         match self.known_keys.get(key) {
             Ok(None) => Ok(None),
@@ -132,7 +126,6 @@ impl IdentityKeyStore for SledIdentityStore {
         &mut self,
         address: &ProtocolAddress,
         identity: &IdentityKey,
-        _ctx: Context,
     ) -> SignalResult<bool> {
         let key = ProtocolAddressBytes::from(address);
         let new = identity.serialize();

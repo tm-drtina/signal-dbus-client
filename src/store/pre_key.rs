@@ -2,7 +2,7 @@ use std::convert::TryFrom;
 
 use async_trait::async_trait;
 use libsignal_protocol::error::Result as SignalResult;
-use libsignal_protocol::{Context, PreKeyId, PreKeyRecord, PreKeyStore, SignalProtocolError};
+use libsignal_protocol::{PreKeyId, PreKeyRecord, PreKeyStore, SignalProtocolError};
 use sled::{Db, Tree};
 
 use super::utils::sled_to_signal_error;
@@ -18,7 +18,7 @@ impl TryFrom<&Db> for SledPreKeyStore {
 
 #[async_trait(?Send)]
 impl PreKeyStore for SledPreKeyStore {
-    async fn get_pre_key(&self, prekey_id: PreKeyId, _ctx: Context) -> SignalResult<PreKeyRecord> {
+    async fn get_pre_key(&self, prekey_id: PreKeyId) -> SignalResult<PreKeyRecord> {
         let key = u32::from(prekey_id).to_le_bytes();
         match self.0.get(key) {
             Ok(Some(bytes)) => PreKeyRecord::deserialize(&bytes),
@@ -31,7 +31,6 @@ impl PreKeyStore for SledPreKeyStore {
         &mut self,
         prekey_id: PreKeyId,
         record: &PreKeyRecord,
-        _ctx: Context,
     ) -> SignalResult<()> {
         // This overwrites old values, which matches Java behavior, but is it correct?
         let key = u32::from(prekey_id).to_le_bytes();
@@ -42,7 +41,7 @@ impl PreKeyStore for SledPreKeyStore {
         Ok(())
     }
 
-    async fn remove_pre_key(&mut self, prekey_id: PreKeyId, _ctx: Context) -> SignalResult<()> {
+    async fn remove_pre_key(&mut self, prekey_id: PreKeyId) -> SignalResult<()> {
         // If `prekey_id` does not exist this silently does nothing
         let key = u32::from(prekey_id).to_le_bytes();
         self.0
