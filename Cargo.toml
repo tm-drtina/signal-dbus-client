@@ -5,10 +5,10 @@ authors = ["Tomas Drtina <tm.drtina@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-libsignal-protocol = { git = "https://github.com/signalapp/libsignal.git", tag = "v0.22.2" }
-signal-provisioning-api = { git = "https://github.com/tm-drtina/signal-provisioning-api.git", tag = "v0.6.0" }
+libsignal-protocol = { git = "https://github.com/signalapp/libsignal.git", tag = "v0.31.0" }
+signal-provisioning-api = { git = "https://github.com/tm-drtina/signal-provisioning-api.git", branch = "libsignal-0.31.0" } #, tag = "v0.7.0" }
 
-rand = "0.7.3"
+rand = "0.8"
 
 qrcode = { version = "0.12", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
@@ -33,3 +33,9 @@ sled = "0.34.6"
 
 [build-dependencies]
 prost-build = "0.9"
+
+[patch.crates-io]
+# Follow patches from libsignal
+# Use our fork of curve25519-dalek for zkgroup support.
+curve25519-dalek = { git = 'https://github.com/signalapp/curve25519-dalek', tag = 'signal-curve25519-4.0.0' }
+x25519-dalek = { git = 'https://github.com/signalapp/curve25519-dalek', tag = 'signal-curve25519-4.0.0' }
