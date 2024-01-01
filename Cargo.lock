@@ -1786,7 +1786,6 @@ dependencies = [
  "clap",
  "dirs",
  "futures-util",
- "http 1.0.0",
  "libsignal-protocol",
  "prost",
  "prost-build",

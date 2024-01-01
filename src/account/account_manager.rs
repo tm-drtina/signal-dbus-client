@@ -16,7 +16,7 @@ use crate::account::pre_keys::DeviceKeys;
 use crate::common::{ApiConfig, ApiPath};
 use crate::error::{Error, Result};
 use crate::store::SledStateStore;
-use crate::utils::{HttpClient, Body};
+use crate::utils::{Body, HttpClient};
 
 use super::pre_keys::{generate_pre_keys, generate_signed_pre_key, PreKeyState};
 
@@ -189,7 +189,11 @@ impl<'r, R: Rng + CryptoRng + Clone> AccountManager<'r, R> {
 
             let response_result = self
                 .http_client
-                .send(Method::PUT, ApiPath::SendMessage { recipient }, Body::Json(&body))
+                .send(
+                    Method::PUT,
+                    ApiPath::SendMessage { recipient },
+                    Body::Json(&body),
+                )
                 .await;
 
             let response: MessageResponse200 = match response_result {

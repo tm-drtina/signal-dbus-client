@@ -1,7 +1,5 @@
-use http::Uri;
-use http::uri::{Authority, Scheme};
-use reqwest::header::{HeaderMap, USER_AGENT, HeaderValue};
-use reqwest::{Client, Response, Method};
+use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
+use reqwest::{Client, Method, Response};
 use serde::Serialize;
 
 use crate::common::{ApiConfig, ApiPath};
@@ -11,7 +9,7 @@ pub(crate) struct HttpClient {
     client: Client,
     username: String,
     password: String,
-    authority: Authority,
+    authority: String,
 }
 
 pub(crate) enum Body<'a, T: Serialize> {
@@ -56,35 +54,26 @@ impl HttpClient {
         path: ApiPath<'_>,
         body: Body<'_, T>,
     ) -> Result<Response> {
-        let uri = Uri::builder()
-            .scheme(Scheme::HTTPS)
-            .authority(self.authority.clone())
-            .path_and_query(path.get_path())
-            .build()
-            .expect("URI should be valid.");
-
         let mut req_builder = self
             .client
-            .request(method, "") // TODO
+            .request(
+                method,
+                format!("https://{}{}", self.authority, path.get_path()),
+            )
             .basic_auth(&self.username, Some(&self.password));
 
         if let Body::Json(data) = body {
             req_builder = req_builder.json(&data);
         }
-    
+
         let resp = req_builder.send().await?;
 
         if resp.status().is_success() {
             Ok(resp)
         } else if resp.status().as_u16() == 499 {
-            Err(Error::DeprecatedHttpError(
-                resp.text().await?,
-            ))
+            Err(Error::DeprecatedHttpError(resp.text().await?))
         } else {
-            Err(Error::HttpError(
-                resp.status(),
-                resp.text().await?,
-            ))
+            Err(Error::HttpError(resp.status(), resp.text().await?))
         }
     }
 }

@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use super::credentials::Credentials;
 use crate::common::{ApiConfig, ApiPath};
 use crate::error::Result;
-use crate::utils::{HttpClient, Body};
+use crate::utils::{Body, HttpClient};
 
 #[derive(Serialize, Debug)]
 struct DeviceRegistrationRequest {
