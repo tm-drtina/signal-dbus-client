@@ -1,4 +1,3 @@
-use hyper::StatusCode;
 use tokio_tungstenite::tungstenite;
 
 #[derive(Debug, thiserror::Error)]
@@ -14,7 +13,7 @@ pub enum Error {
     #[error(transparent)]
     HttpParserError(#[from] tungstenite::http::Error),
     #[error("http error {0}: {1}")]
-    HttpError(StatusCode, String),
+    HttpError(reqwest::StatusCode, String),
     #[error("Deprecated http error: {0}")]
     DeprecatedHttpError(String),
     #[error(transparent)]
@@ -22,7 +21,7 @@ pub enum Error {
     #[error(transparent)]
     SerdeError(#[from] serde_json::Error),
     #[error(transparent)]
-    HyperError(#[from] hyper::Error),
+    ReqwestError(#[from] reqwest::Error),
     #[error(transparent)]
     SledError(#[from] sled::Error),
     #[error(transparent)]

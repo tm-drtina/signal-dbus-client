@@ -1,64 +1,61 @@
-use std::io::Read;
-use std::ops::Deref;
-
-use base64::engine::{general_purpose::STANDARD, Engine as _};
-use hyper::body::{Buf, HttpBody};
-use hyper::header::{
-    HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE, HOST, USER_AGENT,
-};
-use hyper::http::uri::{Authority, Scheme};
-use hyper::{Body, Client, Method, Request, Response, Uri};
-use serde::de::DeserializeOwned;
+use http::Uri;
+use http::uri::{Authority, Scheme};
+use reqwest::header::{HeaderMap, USER_AGENT, HeaderValue};
+use reqwest::{Client, Response, Method};
 use serde::Serialize;
 
 use crate::common::{ApiConfig, ApiPath};
 use crate::error::{Error, Result};
-use crate::utils::HttpsWssConnector;
 
 pub(crate) struct HttpClient {
-    client: Client<HttpsWssConnector>,
-    default_headers: HeaderMap,
+    client: Client,
+    username: String,
+    password: String,
     authority: Authority,
 }
 
-pub(crate) struct WrappedResponse(Response<Body>);
+pub(crate) enum Body<'a, T: Serialize> {
+    Empty,
+    Json(&'a T),
+}
+
+impl Body<'_, ()> {
+    pub(crate) fn empty() -> Self {
+        Self::Empty
+    }
+}
 
 impl HttpClient {
     pub(crate) fn new(username: &str, password: &str, api_config: &ApiConfig) -> Result<Self> {
-        let connector = HttpsWssConnector::new(api_config)?;
-        let client = Client::builder().build(connector);
         let mut default_headers = HeaderMap::new();
-
-        let creds = format!("{}:{}", username, password);
-        let auth_value = format!("Basic {}", STANDARD.encode(creds));
-        let mut auth_value = HeaderValue::from_str(&auth_value).expect("Base64 chars are allowed.");
-        auth_value.set_sensitive(true);
-        default_headers.insert(AUTHORIZATION, auth_value);
-
         default_headers.insert(
             USER_AGENT,
             HeaderValue::from_str(&api_config.user_agent)
                 .expect("User agent contains allowed charset."),
         );
-        default_headers.insert(
-            HOST,
-            HeaderValue::from_str(api_config.authority.host())
-                .expect("Host from Authority is valid."),
-        );
+
+        let client = Client::builder()
+            .default_headers(default_headers)
+            .trust_dns(true)
+            .https_only(true)
+            .tls_built_in_root_certs(false)
+            .add_root_certificate(reqwest::Certificate::from_pem(&api_config.cert_bytes)?)
+            .build()?;
 
         Ok(Self {
             client,
-            default_headers,
+            username: username.to_string(),
+            password: password.to_string(),
             authority: api_config.authority.clone(),
         })
     }
 
-    async fn send_inner(
+    pub async fn send<T: Serialize>(
         &self,
         method: Method,
         path: ApiPath<'_>,
-        body: Body,
-    ) -> Result<WrappedResponse> {
+        body: Body<'_, T>,
+    ) -> Result<Response> {
         let uri = Uri::builder()
             .scheme(Scheme::HTTPS)
             .authority(self.authority.clone())
@@ -66,87 +63,28 @@ impl HttpClient {
             .build()
             .expect("URI should be valid.");
 
-        let mut builder = Request::builder().method(method).uri(uri);
-        for (name, value) in &self.default_headers {
-            builder = builder.header(name.clone(), value);
+        let mut req_builder = self
+            .client
+            .request(method, "") // TODO
+            .basic_auth(&self.username, Some(&self.password));
+
+        if let Body::Json(data) = body {
+            req_builder = req_builder.json(&data);
         }
+    
+        let resp = req_builder.send().await?;
 
-        if let Some(size) = body.size_hint().exact() {
-            builder = builder.header(
-                CONTENT_LENGTH,
-                HeaderValue::from_str(&format!("{}", size)).expect("Numbers are always valid"),
-            );
-            builder = builder.header(CONTENT_TYPE, HeaderValue::from_static("application/json"));
-        }
-
-        let req = builder.body(body)?;
-        eprintln!("{:?}", req);
-
-        let resp = self.client.request(req).await?;
         if resp.status().is_success() {
-            Ok(resp.into())
+            Ok(resp)
         } else if resp.status().as_u16() == 499 {
             Err(Error::DeprecatedHttpError(
-                WrappedResponse(resp).text().await?,
+                resp.text().await?,
             ))
         } else {
             Err(Error::HttpError(
                 resp.status(),
-                WrappedResponse(resp).text().await?,
+                resp.text().await?,
             ))
         }
-    }
-
-    pub(crate) async fn send(&self, method: Method, path: ApiPath<'_>) -> Result<WrappedResponse> {
-        self.send_inner(method, path, Body::empty()).await
-    }
-
-    pub(crate) async fn send_json<S: Serialize>(
-        &self,
-        method: Method,
-        path: ApiPath<'_>,
-        body: &S,
-    ) -> Result<WrappedResponse> {
-        let serialized_body = serde_json::to_vec(body)?;
-        self.send_inner(method, path, serialized_body.into()).await
-    }
-}
-
-impl WrappedResponse {
-    pub(crate) async fn bytes(self) -> Result<impl Buf> {
-        hyper::body::aggregate(self.0.into_body())
-            .await
-            .map_err(Into::into)
-    }
-
-    pub(crate) async fn json<T: DeserializeOwned>(self) -> Result<T> {
-        let bytes = self.bytes().await?;
-        serde_json::from_reader(bytes.reader()).map_err(Into::into)
-    }
-
-    pub(crate) async fn text(self) -> Result<String> {
-        let bytes = self.bytes().await?;
-        let mut buf = String::new();
-        bytes.reader().read_to_string(&mut buf)?;
-        Ok(buf)
-    }
-}
-
-impl Deref for WrappedResponse {
-    type Target = Response<Body>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl From<WrappedResponse> for Response<Body> {
-    fn from(res: WrappedResponse) -> Self {
-        res.0
-    }
-}
-
-impl From<Response<Body>> for WrappedResponse {
-    fn from(res: Response<Body>) -> Self {
-        Self(res)
     }
 }

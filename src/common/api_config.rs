@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use hyper::http::uri::{Authority, PathAndQuery};
+use http::uri::{Authority, PathAndQuery};
 use tokio_rustls::rustls::{ClientConfig, RootCertStore};
 
 use crate::error::{Error, Result};
@@ -13,15 +13,14 @@ pub struct ApiConfig {
 
 impl ApiConfig {
     pub(crate) fn rustls_config(&self) -> Result<ClientConfig> {
-        let certs = rustls_pemfile::certs(&mut &*self.cert_bytes).map_err(|_| {
+        let certs = rustls_pemfile::certs(&mut &*self.cert_bytes).collect::<std::result::Result<Vec<_>, _>>().map_err(|_| {
             Error::ConfigError(String::from("Failed to process Signal certificate"))
         })?;
 
         let mut root_store = RootCertStore::empty();
-        root_store.add_parsable_certificates(&certs);
+        root_store.add_parsable_certificates(certs);
 
         Ok(ClientConfig::builder()
-            .with_safe_defaults()
             .with_root_certificates(root_store)
             .with_no_client_auth())
     }

@@ -1,12 +1,13 @@
 use std::convert::TryInto;
 use std::path::PathBuf;
+use std::time::SystemTime;
 
-use hyper::Method;
 use libsignal_protocol::{
     message_encrypt, process_prekey_bundle, DeviceId, IdentityKeyStore, PreKeyBundle, PreKeyStore,
     ProtocolAddress, SessionStore, SignedPreKeyId, SignedPreKeyStore,
 };
 use rand::{CryptoRng, Rng};
+use reqwest::Method;
 
 use crate::account::messages::{
     MessageResponse200, MessageResponse409, MessagesWrapper, SendMetadata,
@@ -15,7 +16,7 @@ use crate::account::pre_keys::DeviceKeys;
 use crate::common::{ApiConfig, ApiPath};
 use crate::error::{Error, Result};
 use crate::store::SledStateStore;
-use crate::utils::HttpClient;
+use crate::utils::{HttpClient, Body};
 
 use super::pre_keys::{generate_pre_keys, generate_signed_pre_key, PreKeyState};
 
@@ -91,6 +92,7 @@ impl<'r, R: Rng + CryptoRng + Clone> AccountManager<'r, R> {
                     recipient,
                     device_id,
                 },
+                Body::empty(),
             )
             .await?
             .json()
@@ -116,6 +118,7 @@ impl<'r, R: Rng + CryptoRng + Clone> AccountManager<'r, R> {
                 &mut session_store,
                 &mut identity_store,
                 &bundle,
+                SystemTime::now(),
                 &mut csprng,
             )
             .await?;
@@ -127,7 +130,7 @@ impl<'r, R: Rng + CryptoRng + Clone> AccountManager<'r, R> {
 
     async fn register_prekeys(&self, pre_key_state: PreKeyState) -> Result<()> {
         self.http_client
-            .send_json(Method::PUT, ApiPath::PreKeys, &pre_key_state)
+            .send(Method::PUT, ApiPath::PreKeys, Body::Json(&pre_key_state))
             .await?;
 
         Ok(())
@@ -139,8 +142,6 @@ impl<'r, R: Rng + CryptoRng + Clone> AccountManager<'r, R> {
             .load_sessions_by_prefix(recipient)
             .await?
             .into_iter()
-            // TODO: Is this filter correct?
-            .filter(|(_, session)| session.has_current_session_state())
             .map(|(addr, session)| Ok((addr, session.remote_registration_id()?)))
             .collect()
     }
@@ -173,6 +174,7 @@ impl<'r, R: Rng + CryptoRng + Clone> AccountManager<'r, R> {
                     &addr,
                     &mut session_store,
                     &mut identity_store,
+                    SystemTime::now(),
                 )
                 .await?;
 
@@ -187,7 +189,7 @@ impl<'r, R: Rng + CryptoRng + Clone> AccountManager<'r, R> {
 
             let response_result = self
                 .http_client
-                .send_json(Method::PUT, ApiPath::SendMessage { recipient }, &body)
+                .send(Method::PUT, ApiPath::SendMessage { recipient }, Body::Json(&body))
                 .await;
 
             let response: MessageResponse200 = match response_result {

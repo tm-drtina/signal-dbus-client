@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use base64::engine::{general_purpose::STANDARD_NO_PAD, Engine as _};
-use hyper::Method;
 use libsignal_protocol::ProtocolAddress;
+use reqwest::Method;
 use signal_provisioning_api::ProvisionMessage;
 use uuid::Uuid;
 
@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use super::credentials::Credentials;
 use crate::common::{ApiConfig, ApiPath};
 use crate::error::Result;
-use crate::utils::HttpClient;
+use crate::utils::{HttpClient, Body};
 
 #[derive(Serialize, Debug)]
 struct DeviceRegistrationRequest {
@@ -80,12 +80,12 @@ pub(super) async fn register_device(
 
     let http_client = HttpClient::new(message.number(), &api_pass, api_config)?;
     let response: DeviceRegistrationResponse = http_client
-        .send_json(
+        .send(
             Method::PUT,
             ApiPath::Device {
                 provisioning_code: message.provisioning_code(),
             },
-            &registration_request,
+            Body::Json(&registration_request),
         )
         .await?
         .json()
